@@ -1,0 +1,12 @@
+# Go binary
+grow                                                                             
+                                                                                   
+# OS files
+.DS_Store                                                                        
+                                                                                 
+# Claude Code local settings
+.claude/
+
+# Personal planning & retrospective docs                                         
+PLAN.md
+Retro.md
