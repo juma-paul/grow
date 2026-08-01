@@ -31,3 +31,30 @@ func TestCPythonGrowthSequence(t *testing.T) {
 
 	}
 }
+
+func TestDoublingGrowthSequence(t *testing.T) {
+	cases := []struct {
+		needed, want int
+	}{
+		{1, 4},
+		{2, 4},
+		{3, 4},
+		{4, 4},
+		{5, 8},
+		{8, 8},
+		{9, 16},
+		{16, 16},
+		{17, 32},
+		{33, 64},
+		{65, 128},
+	}
+
+	for _, tc := range cases {
+		t.Run(fmt.Sprintf("needed=%d", tc.needed), func(t *testing.T) {
+			got := DoublingGrowth{}.NextCapacity(tc.needed)
+			if got != tc.want {
+				t.Errorf("got %d, want %d", got, tc.want)
+			}
+		})
+	}
+}
