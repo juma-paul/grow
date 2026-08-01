@@ -14,7 +14,8 @@ func (CPythonGrowth) NextCapacity(needed int) int {
 	return unaligned &^ 3
 }
 
-// Doubling implementation
+// DoublingGrowth implements the classic textbook doubling strategy.
+// Capacity is always a power of 2, minimum 4.
 type DoublingGrowth struct{}
 
 func (DoublingGrowth) NextCapacity(needed int) int {
@@ -23,4 +24,13 @@ func (DoublingGrowth) NextCapacity(needed int) int {
 		capacity *= 2
 	}
 	return capacity
+}
+
+// OneAndAHalfGrowth implements Java ArrayList-style 1.5× growth.
+// Result is ceil(needed * 1.5), minimum 4.
+type OneAndAHalfGrowth struct{}
+
+func (OneAndAHalfGrowth) NextCapacity(needed int) int {
+	grown := needed + (needed+1)/2
+	return max(4, grown)
 }

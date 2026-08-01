@@ -58,3 +58,30 @@ func TestDoublingGrowthSequence(t *testing.T) {
 		})
 	}
 }
+
+func TestOneAndAHalfGrowthSequence(t *testing.T) {
+	cases := []struct {
+		needed, want int
+	}{
+		{1, 4},
+		{2, 4},
+		{3, 5},
+		{4, 6},
+		{5, 8},
+		{6, 9},
+		{7, 11},
+		{8, 12},
+		{16, 24},
+		{33, 50},
+		{64, 96},
+	}
+
+	for _, tc := range cases {
+		t.Run(fmt.Sprintf("needed=%d", tc.needed), func(t *testing.T) {
+			got := OneAndAHalfGrowth{}.NextCapacity(tc.needed)
+			if got != tc.want {
+				t.Errorf("got %d, want %d", got, tc.want)
+			}
+		})
+	}
+}
