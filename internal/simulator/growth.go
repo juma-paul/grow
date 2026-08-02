@@ -1,5 +1,7 @@
 package simulator
 
+import "fmt"
+
 // Interface (contract)
 type GrowthStrategy interface {
 	NextCapacity(needed int) int
@@ -33,4 +35,17 @@ type OneAndAHalfGrowth struct{}
 func (OneAndAHalfGrowth) NextCapacity(needed int) int {
 	grown := needed + (needed+1)/2
 	return max(4, grown)
+}
+
+// NoGrowth is a fixed-capacity strategy that panics on overflow.
+// Demonstrates what happens without dynamic resizing.
+type NoGrowth struct {
+	Cap int
+}
+
+func (ng NoGrowth) NextCapacity(needed int) int {
+	if needed <= ng.Cap {
+		return ng.Cap
+	}
+	panic(fmt.Sprintf("NoGrowth: capacity %d exceeded, needed %d", ng.Cap, needed))
 }
