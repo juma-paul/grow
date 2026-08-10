@@ -14,6 +14,13 @@ type AppendBegin struct {
 
 func (AppendBegin) Type() string { return "append_begin" }
 
+// AppendEnd fires when an append operation completes.
+type AppendEnd struct {
+	Cost int `json:"cost"`
+}
+
+func (AppendEnd) Type() string { return "append_end" }
+
 // ResizeBegin fires when the array grows to a larger capacity.
 type ResizeBegin struct {
 	OldCap int `json:"old_cap"`

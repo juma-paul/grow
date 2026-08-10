@@ -58,3 +58,17 @@ func NewVisualList(strategy GrowthStrategy, emit func(events.Event)) *VisualList
 		emit:      emit,
 	}
 }
+
+func (l *VisualList) Append(value any) {
+	l.emit(events.AppendBegin{
+		Value:    value,
+		Length:   l.length,
+		Capacity: l.allocated,
+	})
+
+	oldLen := l.length
+	l.resize(l.length + 1)
+	l.items[oldLen] = value
+
+	l.emit(events.AppendEnd{Cost: 1})
+}
