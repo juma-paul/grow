@@ -47,3 +47,56 @@ func TestAppend100(t *testing.T) {
 		}
 	}
 }
+
+func TestPopShrink(t *testing.T) {
+	var log []events.Event
+	lst := NewVisualList(CPythonGrowth{}, func(e events.Event) {
+		log = append(log, e)
+	})
+
+	// Build up to allocated=76, len=65
+	for i := 0; i < 65; i++ {
+		lst.Append(i)
+	}
+
+	// Verify starting state
+	if lst.allocated != 76 {
+		t.Fatalf("setup: allocated = %d, want 76", lst.allocated)
+	}
+
+	// Clear the log — we only care about pop events
+	log = nil
+
+	// Pop 28 times (len goes from 65 to 37)
+	for i := 0; i < 28; i++ {
+		lst.Pop()
+	}
+
+	// Should be exactly one shrink
+	var shrinkEvents []events.ShrinkBegin
+	for _, e := range log {
+		if s, ok := e.(events.ShrinkBegin); ok {
+			shrinkEvents = append(shrinkEvents, s)
+		}
+	}
+
+	if len(shrinkEvents) != 1 {
+		t.Fatalf("shrink count = %d, want 1", len(shrinkEvents))
+	}
+
+	// Shrink should be from 76 to 44
+	if shrinkEvents[0].OldCap != 76 {
+		t.Errorf("shrink old_cap = %d, want 76", shrinkEvents[0].OldCap)
+	}
+	if shrinkEvents[0].NewCap != 44 {
+		t.Errorf("shrink new_cap = %d, want 44", shrinkEvents[0].NewCap)
+	}
+
+	// Final state
+	if lst.length != 37 {
+		t.Errorf("length = %d, want 37", lst.length)
+	}
+	if lst.allocated != 44 {
+		t.Errorf("allocated = %d, want 44", lst.allocated)
+	}
+}

@@ -72,3 +72,25 @@ func (l *VisualList) Append(value any) {
 
 	l.emit(events.AppendEnd{Cost: 1})
 }
+
+func (l *VisualList) Pop() any {
+	if l.length == 0 {
+		panic("pop from empty list")
+	}
+
+	l.emit(events.PopBegin{
+		Length:   l.length,
+		Capacity: l.allocated,
+	})
+
+	l.length--
+
+	value := l.items[l.length]
+	// clear the reference
+	l.items[l.length] = nil
+	l.resize(l.length)
+
+	l.emit(events.PopEnd{Cost: 1})
+
+	return value
+}
