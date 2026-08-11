@@ -100,3 +100,54 @@ func TestPopShrink(t *testing.T) {
 		t.Errorf("allocated = %d, want 44", lst.allocated)
 	}
 }
+
+func TestInsertNoResize(t *testing.T) {
+	var log []events.Event
+	lst := NewVisualList(CPythonGrowth{}, func(e events.Event) {
+		log = append(log, e)
+	})
+
+	// Build [1,2,3,4,5] — capacity will be 8, plenty of room
+	for i := 1; i <= 5; i++ {
+		lst.Append(i)
+	}
+	log = nil
+
+	// Insert 99 at index 0
+	lst.Insert(0, 99)
+
+	// Should be zero ResizeBegin events
+	for _, e := range log {
+		if _, ok := e.(events.ResizeBegin); ok {
+			t.Error("unexpected resize during insert")
+		}
+	}
+
+	// Should be exactly 5 ShiftRight events
+	var shifts []events.ShiftRight
+	for _, e := range log {
+		if s, ok := e.(events.ShiftRight); ok {
+			shifts = append(shifts, s)
+		}
+	}
+
+	if len(shifts) != 5 {
+		t.Fatalf("shift count = %d, want 5", len(shifts))
+	}
+
+	// Shifts should be at indices 5, 4, 3, 2, 1 (right to left)
+	wantIndices := []int{5, 4, 3, 2, 1}
+	for i, s := range shifts {
+		if s.Index != wantIndices[i] {
+			t.Errorf("shift #%d at index %d, want %d", i+1, s.Index, wantIndices[i])
+		}
+	}
+
+	// Verify final list content
+	if lst.items[0] != 99 {
+		t.Errorf("items[0] = %v, want 99", lst.items[0])
+	}
+	if lst.length != 6 {
+		t.Errorf("length = %d, want 6", lst.length)
+	}
+}

@@ -1,6 +1,10 @@
 package simulator
 
-import "github.com/juma-paul/grow/internal/events"
+import (
+	"fmt"
+
+	"github.com/juma-paul/grow/internal/events"
+)
 
 type VisualList struct {
 	items     []any
@@ -93,4 +97,29 @@ func (l *VisualList) Pop() any {
 	l.emit(events.PopEnd{Cost: 1})
 
 	return value
+}
+
+func (l *VisualList) Insert(index int, value any) {
+	if index < 0 || index > l.length {
+		panic(fmt.Sprintf("insert index %d out of range for list of length %d", index, l.length))
+	}
+
+	l.emit(events.InsertBegin{
+		Index:    index,
+		Value:    value,
+		Length:   l.length,
+		Capacity: l.allocated,
+	})
+
+	l.resize(l.length + 1)
+
+	// Shift elements right, from end toward insertion point
+	for i := l.length - 1; i > index; i-- {
+		l.items[i] = l.items[i-1]
+		l.emit(events.ShiftRight{Index: i})
+	}
+
+	l.items[index] = value
+
+	l.emit(events.InsertEnd{Cost: l.length - index})
 }
