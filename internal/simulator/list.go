@@ -123,3 +123,23 @@ func (l *VisualList) Insert(index int, value any) {
 
 	l.emit(events.InsertEnd{Cost: l.length - index})
 }
+
+func (l *VisualList) Extend(items []any) {
+	hint := len(items)
+
+	l.emit(events.ExtendBegin{
+		Items:    hint,
+		Length:   l.length,
+		Capacity: l.allocated,
+	})
+
+	// Pre-size: one resize for all items (the length-hint optimization)
+	l.resize(l.length + hint)
+
+	// Place each element — no further resizes needed
+	for i, v := range items {
+		l.items[l.length-hint+i] = v
+	}
+
+	l.emit(events.ExtendEnd{Cost: hint})
+}

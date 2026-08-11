@@ -151,3 +151,35 @@ func TestInsertNoResize(t *testing.T) {
 		t.Errorf("length = %d, want 6", lst.length)
 	}
 }
+
+func TestExtendLengthHint(t *testing.T) {
+	var log []events.Event
+	lst := NewVisualList(CPythonGrowth{}, func(e events.Event) {
+		log = append(log, e)
+	})
+
+	// Build the items to extend with
+	items := make([]any, 1000)
+	for i := range items {
+		items[i] = i
+	}
+
+	lst.Extend(items)
+
+	// Should be exactly 1 ResizeBegin
+	resizeCount := 0
+	for _, e := range log {
+		if _, ok := e.(events.ResizeBegin); ok {
+			resizeCount++
+		}
+	}
+
+	if resizeCount != 1 {
+		t.Errorf("resize count = %d, want 1", resizeCount)
+	}
+
+	// Final state
+	if lst.length != 1000 {
+		t.Errorf("length = %d, want 1000", lst.length)
+	}
+}
