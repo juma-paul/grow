@@ -1,6 +1,8 @@
 package simulator
 
 import (
+	"encoding/json"
+	"os"
 	"testing"
 
 	"github.com/juma-paul/grow/internal/events"
@@ -181,5 +183,36 @@ func TestExtendLengthHint(t *testing.T) {
 	// Final state
 	if lst.length != 1000 {
 		t.Errorf("length = %d, want 1000", lst.length)
+	}
+}
+
+func TestReferenceSnapshot(t *testing.T) {
+	data, err := os.ReadFile("../../testdata/cpython_reference.json")
+	if err != nil {
+		t.Fatalf("failed to read reference file: %v", err)
+	}
+
+	type refEntry struct {
+		AppendNum int `json:"append_num"`
+		Len       int `json:"len"`
+		Allocated int `json:"allocated"`
+	}
+
+	var entries []refEntry
+	if err := json.Unmarshal(data, &entries); err != nil {
+		t.Fatalf("failed to parse reference JSON: %v", err)
+	}
+
+	lst := NewVisualList(CPythonGrowth{}, func(e events.Event) {})
+
+	for _, entry := range entries {
+		lst.Append(entry.AppendNum)
+
+		if lst.length != entry.Len {
+			t.Errorf("append #%d: length = %d, want %d", entry.AppendNum, lst.length, entry.Len)
+		}
+		if lst.allocated != entry.Allocated {
+			t.Errorf("append #%d: allocated = %d, want %d", entry.AppendNum, lst.allocated, entry.Allocated)
+		}
 	}
 }
