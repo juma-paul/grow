@@ -1,5 +1,10 @@
 package events
 
+import (
+	"encoding/json"
+	"fmt"
+)
+
 // Event is the common interface for all simulator events.
 type Event interface {
 	Type() string
@@ -114,3 +119,20 @@ type ExtendEnd struct {
 }
 
 func (ExtendEnd) Type() string { return "extend_end" }
+
+//
+func Marshal(e Event) ([]byte, error) {
+	raw, err := json.Marshal(e)
+
+	if err != nil {
+		return nil, err
+	}
+
+	typeField := fmt.Sprintf(`"type": "%s"`, e.Type())
+
+	inner := string(raw[1 : len(raw)-1]) // strip { and }
+	if len(inner) > 0 {
+		return []byte("{" + typeField + "," + inner + "}"), nil
+	}
+	return []byte("{" + typeField + "}"), nil
+}
