@@ -14,7 +14,7 @@ var upgrader = websocket.Upgrader{
 }
 
 // HandleExecute upgrades to WebSocket and streams events for a
-// hardcoded "append 5" scenario.
+// hardcoded "append 100" scenario.
 func HandleExecute(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -33,7 +33,7 @@ func HandleExecute(w http.ResponseWriter, r *http.Request) {
 		}
 	})
 
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 100; i++ {
 		lst.Append(i)
 	}
 }
