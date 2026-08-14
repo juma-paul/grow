@@ -120,7 +120,11 @@ type ExtendEnd struct {
 
 func (ExtendEnd) Type() string { return "extend_end" }
 
-//
+// Marshal converts an Event to JSON with a "type" field injected.
+  // The type value comes from e.Type() and is prepended to the struct's                                                             
+  // serialized fields, producing output like:
+  //                                                                                                                                 
+  //    {"type":"resize_begin","old_cap":4,"new_cap":8}
 func Marshal(e Event) ([]byte, error) {
 	raw, err := json.Marshal(e)
 
