@@ -3,6 +3,7 @@ package server
 import (
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/juma-paul/grow/internal/events"
@@ -36,4 +37,14 @@ func HandleExecute(w http.ResponseWriter, r *http.Request) {
 	for i := 0; i < 100; i++ {
 		lst.Append(i)
 	}
+
+	// Signal clean shutdown to the client
+	conn.WriteMessage(
+		websocket.CloseMessage,
+		websocket.FormatCloseMessage(websocket.CloseNormalClosure, "done"),
+	)
+
+	// Complete the close handshake by reading the client's close frame.
+	conn.SetReadDeadline(time.Now().Add(time.Second))
+	conn.ReadMessage()
 }
