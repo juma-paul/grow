@@ -15,6 +15,8 @@ func main() {
 
 	http.HandleFunc("/execute", server.HandleExecute)
 
+	http.Handle("/", server.FrontendHandler())
+
 	log.Println("listening on http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

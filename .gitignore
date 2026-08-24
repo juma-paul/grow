@@ -1,6 +1,8 @@
 # Go binary
-grow                                                                             
-                                                                                   
+grow
+# Frontend build output
+internal/server/dist/
+
 # OS files
 .DS_Store                                                                        
                                                                                  
