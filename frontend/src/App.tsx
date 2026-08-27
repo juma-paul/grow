@@ -2,11 +2,15 @@ import { Editor } from "@monaco-editor/react";
 import CanvasArray from "./components/CanvasArray";
 import { useEventStream } from "./hooks/useEventStream";
 import { useEventStore } from "./store";
+import { usePlayback } from "./hooks/usePlayback";
 
 function App() {
   const length = useEventStore((state) => state.length);
   const capacity = useEventStore((state) => state.capacity);
+  const currentIndex = useEventStore((state) => state.currentIndex);
+  const totalEvents = useEventStore((state) => state.events.length);
   const { connect } = useEventStream();
+  usePlayback();
 
   return (
     <div className="flex h-screen flex-col bg-zinc-900 text-white">
@@ -19,7 +23,8 @@ function App() {
           Run
         </button>
         <span className="text-sm text-zinc-400">
-          length: {length} / capacity: {capacity}
+          length: {length} / capacity: {capacity} — event {currentIndex + 1}/
+          {totalEvents}
         </span>
       </div>
       <div className="flex flex-1 overflow-hidden">

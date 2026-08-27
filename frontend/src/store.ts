@@ -11,30 +11,56 @@ interface EventStore {
   currentIndex: number;
   length: number;
   capacity: number;
-  push: (event: Event) => void;
+  isPlaying: boolean;
+  speed: number;
+  addEvents: (events: Event[]) => void;
+  stepForward: () => void;
+  play: () => void;
+  pause: () => void;
   reset: () => void;
 }
 
-export const useEventStore = create<EventStore>((set) => ({
+function applyEvent(state: { length: number; capacity: number }, event: Event) {
+  let { length, capacity } = state;
+  if (event.type === "append_begin") {
+    length = (event.length as number) + 1;
+  }
+  if (event.type === "resize_begin" || event.type === "shrink_begin") {
+    capacity = event.new_cap as number;
+  }
+  return { length, capacity };
+}
+
+export const useEventStore = create<EventStore>((set, get) => ({
   events: [],
-  currentIndex: 0,
+  currentIndex: -1,
   length: 0,
   capacity: 0,
+  isPlaying: false,
+  speed: 1,
 
-  push: (event) =>
-    set((state) => {
-      const events = [...state.events, event];
-      let { length, capacity } = state;
+  addEvents: (events) => set({ events }),
 
-      if (event.type === "append_begin") {
-        length = (event.length as number) + 1;
-      }
-      if (event.type === "resize_begin") {
-        capacity = event.new_cap as number;
-      }
+  stepForward: () => {
+    const { events, currentIndex } = get();
+    const next = currentIndex + 1;
+    if (next >= events.length) {
+      set({ isPlaying: false });
+      return;
+    }
+    const updated = applyEvent(get(), events[next]);
+    set({ currentIndex: next, ...updated });
+  },
 
-      return { events, currentIndex: events.length - 1, length, capacity };
+  play: () => set({ isPlaying: true }),
+  pause: () => set({ isPlaying: false }),
+
+  reset: () =>
+    set({
+      events: [],
+      currentIndex: -1,
+      length: 0,
+      capacity: 0,
+      isPlaying: false,
     }),
-
-  reset: () => set({ events: [], currentIndex: 0, length: 0, capacity: 0 }),
 }));
