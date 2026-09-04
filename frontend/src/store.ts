@@ -6,29 +6,90 @@ interface Event {
   [key: string]: unknown;
 }
 
+interface ResizeState {
+  oldCap: number;
+  newCap: number;
+  copied: number[];
+}
+
+interface PastArray {
+  capacity: number;
+  length: number;
+}
+
+// Brief holding state: old array fades amber → gray before collapsing
+interface RetiringState {
+  capacity: number;
+  length: number;
+}
+
 interface EventStore {
   events: Event[];
   currentIndex: number;
   length: number;
   capacity: number;
+  resize: ResizeState | null;
+  retiring: RetiringState | null;
+  pastArrays: PastArray[];
   isPlaying: boolean;
   speed: number;
+  count: number;
   addEvents: (events: Event[]) => void;
   stepForward: () => void;
+  commitRetiring: () => void;
   play: () => void;
   pause: () => void;
+  setCount: (count: number) => void;
   reset: () => void;
 }
 
-function applyEvent(state: { length: number; capacity: number }, event: Event) {
+function applyEvent(
+  state: {
+    length: number;
+    capacity: number;
+    resize: ResizeState | null;
+    retiring: RetiringState | null;
+    pastArrays: PastArray[];
+  },
+  event: Event,
+) {
   let { length, capacity } = state;
+  let resize = state.resize;
+  let retiring = state.retiring;
+  let pastArrays = state.pastArrays;
+
   if (event.type === "append_begin") {
     length = (event.length as number) + 1;
   }
+
   if (event.type === "resize_begin" || event.type === "shrink_begin") {
+    // If a previous resize is still retiring, commit it now
+    if (retiring) {
+      pastArrays = [...pastArrays, retiring];
+      retiring = null;
+    }
     capacity = event.new_cap as number;
+    resize = {
+      oldCap: event.old_cap as number,
+      newCap: event.new_cap as number,
+      copied: [],
+    };
   }
-  return { length, capacity };
+
+  if (event.type === "copy_element" && resize) {
+    resize = { ...resize, copied: [...resize.copied, event.to as number] };
+  }
+
+  if (event.type === "resize_end" || event.type === "shrink_end") {
+    // Phase 1: move to retiring (amber → gray fade happens here)
+    // Phase 2: commitRetiring() collapses and adds to pastArrays
+    if (resize) {
+      retiring = { capacity: resize.oldCap, length: resize.copied.length };
+    }
+    resize = null;
+  }
+
+  return { length, capacity, resize, retiring, pastArrays };
 }
 
 export const useEventStore = create<EventStore>((set, get) => ({
@@ -36,8 +97,12 @@ export const useEventStore = create<EventStore>((set, get) => ({
   currentIndex: -1,
   length: 0,
   capacity: 0,
+  resize: null,
+  retiring: null,
+  pastArrays: [],
   isPlaying: false,
   speed: 1,
+  count: 20,
 
   addEvents: (events) => set({ events }),
 
@@ -52,8 +117,19 @@ export const useEventStore = create<EventStore>((set, get) => ({
     set({ currentIndex: next, ...updated });
   },
 
+  // Called after the amber→gray fade completes (~800ms after resize_end)
+  commitRetiring: () => {
+    const { retiring, pastArrays } = get();
+    if (!retiring) return;
+    set({
+      retiring: null,
+      pastArrays: [...pastArrays, retiring],
+    });
+  },
+
   play: () => set({ isPlaying: true }),
   pause: () => set({ isPlaying: false }),
+  setCount: (count) => set({ count }),
 
   reset: () =>
     set({
@@ -61,6 +137,9 @@ export const useEventStore = create<EventStore>((set, get) => ({
       currentIndex: -1,
       length: 0,
       capacity: 0,
+      resize: null,
+      retiring: null,
+      pastArrays: [],
       isPlaying: false,
     }),
 }));

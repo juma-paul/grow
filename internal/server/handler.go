@@ -3,6 +3,7 @@ package server
 import (
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -14,9 +15,16 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
-// HandleExecute upgrades to WebSocket and streams events for a
-// hardcoded "append 100" scenario.
+// HandleExecute upgrades to WebSocket and streams events for an
+// append scenario. Accepts ?count=N query param (default 20).
 func HandleExecute(w http.ResponseWriter, r *http.Request) {
+	count := 20
+	if q := r.URL.Query().Get("count"); q != "" {
+		if n, err := strconv.Atoi(q); err == nil && n > 0 && n <= 1000 {
+			count = n
+		}
+	}
+
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("websocket upgrade failed: %v", err)
@@ -34,7 +42,7 @@ func HandleExecute(w http.ResponseWriter, r *http.Request) {
 		}
 	})
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < count; i++ {
 		lst.Append(i)
 	}
 

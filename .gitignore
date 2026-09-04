@@ -1,14 +1,19 @@
 # Go binary
 grow
+
 # Frontend build output
 internal/server/dist/
 
+# Node (frontend manages its own node_modules via pnpm)
+node_modules/
+test-results/
+
 # OS files
-.DS_Store                                                                        
-                                                                                 
+.DS_Store
+
 # Claude Code local settings
 .claude/
 
-# Personal planning & retrospective docs                                         
+# Personal planning & retrospective docs
 PLAN.md
 Retro.md
