@@ -15,10 +15,19 @@ function App() {
   const pastArrays = useEventStore((state) => state.pastArrays);
   const currentIndex = useEventStore((state) => state.currentIndex);
   const totalEvents = useEventStore((state) => state.events.length);
+  const isPlaying = useEventStore((state) => state.isPlaying);
   const count = useEventStore((state) => state.count);
   const setCount = useEventStore((state) => state.setCount);
+  const play = useEventStore((state) => state.play);
+  const pause = useEventStore((state) => state.pause);
+  const stepForward = useEventStore((state) => state.stepForward);
+  const stepBack = useEventStore((state) => state.stepBack);
   const { connect } = useEventStream();
   usePlayback();
+
+  const hasEvents = totalEvents > 0;
+  const atEnd = currentIndex >= totalEvents - 1;
+  const atStart = currentIndex < 0;
 
   return (
     <div className="relative flex h-screen flex-col bg-zinc-900 text-white">
@@ -41,9 +50,37 @@ function App() {
         >
           Run
         </button>
+        {hasEvents && (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={stepBack}
+              disabled={atStart}
+              className="rounded px-2 py-1 text-sm font-medium hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Step back"
+            >
+              ⏮
+            </button>
+            <button
+              onClick={isPlaying ? pause : play}
+              disabled={atEnd && !isPlaying}
+              className="rounded px-2 py-1 text-sm font-medium hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed"
+              title={isPlaying ? "Pause" : "Play"}
+            >
+              {isPlaying ? "⏸" : "▶"}
+            </button>
+            <button
+              onClick={stepForward}
+              disabled={atEnd}
+              className="rounded px-2 py-1 text-sm font-medium hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Step forward"
+            >
+              ⏭
+            </button>
+          </div>
+        )}
         <span className="text-sm text-zinc-400">
           length: {length} / capacity: {capacity}
-          {totalEvents > 0 && ` — event ${currentIndex + 1}/${totalEvents}`}
+          {hasEvents && ` — event ${currentIndex + 1}/${totalEvents}`}
         </span>
       </div>
 

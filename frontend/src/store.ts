@@ -46,6 +46,7 @@ interface EventStore {
   count: number;
   addEvents: (events: Event[]) => void;
   stepForward: () => void;
+  stepBack: () => void;
   commitRetiring: () => void;
   play: () => void;
   pause: () => void;
@@ -123,16 +124,30 @@ function applyEvent(
   return { length, capacity, resize, retiring, pastArrays, costs, pendingResizeCost };
 }
 
+function freshState() {
+  return {
+    length: 0,
+    capacity: 0,
+    resize: null as ResizeState | null,
+    retiring: null as RetiringState | null,
+    pastArrays: [] as PastArray[],
+    costs: [] as CostEntry[],
+    pendingResizeCost: 0,
+  };
+}
+
+function replayTo(events: Event[], targetIndex: number) {
+  let state = freshState();
+  for (let i = 0; i <= targetIndex; i++) {
+    state = applyEvent(state, events[i]);
+  }
+  return state;
+}
+
 export const useEventStore = create<EventStore>((set, get) => ({
   events: [],
   currentIndex: -1,
-  length: 0,
-  capacity: 0,
-  resize: null,
-  retiring: null,
-  pastArrays: [],
-  costs: [],
-  pendingResizeCost: 0,
+  ...freshState(),
   isPlaying: false,
   speed: 1,
   count: 20,
@@ -148,6 +163,17 @@ export const useEventStore = create<EventStore>((set, get) => ({
     }
     const updated = applyEvent(get(), events[next]);
     set({ currentIndex: next, ...updated });
+  },
+
+  stepBack: () => {
+    const { events, currentIndex } = get();
+    if (currentIndex < 0) return;
+    const target = currentIndex - 1;
+    if (target < 0) {
+      set({ currentIndex: -1, ...freshState(), isPlaying: false });
+      return;
+    }
+    set({ currentIndex: target, ...replayTo(events, target) });
   },
 
   // Called after the amber→gray fade completes (~800ms after resize_end)
@@ -168,13 +194,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
     set({
       events: [],
       currentIndex: -1,
-      length: 0,
-      capacity: 0,
-      resize: null,
-      retiring: null,
-      pastArrays: [],
-      costs: [],
-      pendingResizeCost: 0,
+      ...freshState(),
       isPlaying: false,
     }),
 }));
