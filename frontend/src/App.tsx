@@ -6,6 +6,7 @@ import { useEventStore } from "./store";
 import { usePlayback } from "./hooks/usePlayback";
 
 const PRESETS = [5, 10, 15, 20];
+const SPEEDS = [0.5, 1, 2, 5];
 
 function App() {
   const length = useEventStore((state) => state.length);
@@ -22,6 +23,8 @@ function App() {
   const pause = useEventStore((state) => state.pause);
   const stepForward = useEventStore((state) => state.stepForward);
   const stepBack = useEventStore((state) => state.stepBack);
+  const speed = useEventStore((state) => state.speed);
+  const setSpeed = useEventStore((state) => state.setSpeed);
   const { connect } = useEventStream();
   usePlayback();
 
@@ -76,6 +79,23 @@ function App() {
             >
               ⏭
             </button>
+          </div>
+        )}
+        {hasEvents && (
+          <div className="flex items-center gap-1">
+            {SPEEDS.map((s) => (
+              <button
+                key={s}
+                onClick={() => setSpeed(s)}
+                className={`rounded px-2 py-1 text-xs font-medium ${
+                  speed === s
+                    ? "bg-zinc-600 text-white"
+                    : "text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
+                }`}
+              >
+                {s}×
+              </button>
+            ))}
           </div>
         )}
         <span className="text-sm text-zinc-400">

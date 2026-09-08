@@ -50,6 +50,7 @@ interface EventStore {
   commitRetiring: () => void;
   play: () => void;
   pause: () => void;
+  setSpeed: (speed: number) => void;
   setCount: (count: number) => void;
   reset: () => void;
 }
@@ -188,6 +189,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
 
   play: () => set({ isPlaying: true }),
   pause: () => set({ isPlaying: false }),
+  setSpeed: (speed) => set({ speed }),
   setCount: (count) => set({ count }),
 
   reset: () =>
