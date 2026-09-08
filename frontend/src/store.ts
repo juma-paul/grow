@@ -28,6 +28,7 @@ interface CostEntry {
   op: number;
   cost: number;
   isResize: boolean;
+  amortized: number;
 }
 
 interface EventStore {
@@ -105,12 +106,15 @@ function applyEvent(
 
   if (event.type === "append_end") {
     const totalCost = (event.cost as number) + pendingResizeCost;
+    const prevTotal = costs.reduce((sum, c) => sum + c.cost, 0);
+    const opNum = costs.length + 1;
     costs = [
       ...costs,
       {
-        op: costs.length + 1,
+        op: opNum,
         cost: totalCost,
         isResize: pendingResizeCost > 0,
+        amortized: parseFloat(((prevTotal + totalCost) / opNum).toFixed(2)),
       },
     ];
     pendingResizeCost = 0;

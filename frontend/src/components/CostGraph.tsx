@@ -1,6 +1,7 @@
 import {
   ComposedChart,
   Bar,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -40,7 +41,7 @@ export default function CostGraph() {
             tick={{ fontSize: 12, fill: "#71717a" }}
             tickLine={false}
             axisLine={false}
-            allowDecimals={false}
+            allowDecimals
           />
           <Tooltip
             contentStyle={{
@@ -53,10 +54,11 @@ export default function CostGraph() {
             labelStyle={{ color: "#a1a1aa" }}
             itemStyle={{ color: "#e4e4e7" }}
             labelFormatter={(op) => `Append #${op}`}
-            formatter={(value, _name, entry) => [
-              value,
-              (entry.payload as { isResize: boolean }).isResize ? "Cost (resize)" : "Cost",
-            ]}
+            formatter={(value, name, entry) => {
+              if (name === "amortized") return [value, "Amortized avg"];
+              const payload = entry.payload as { isResize: boolean };
+              return [value, payload.isResize ? "Cost (resize)" : "Cost"];
+            }}
             cursor={{ fill: "rgba(63, 63, 70, 0.3)" }}
           />
           <Bar dataKey="cost" radius={[3, 3, 0, 0]} maxBarSize={40}>
@@ -68,6 +70,14 @@ export default function CostGraph() {
               />
             ))}
           </Bar>
+          <Line
+            dataKey="amortized"
+            type="monotone"
+            stroke="#8b5cf6"
+            strokeWidth={2}
+            dot={false}
+            isAnimationActive={false}
+          />
         </ComposedChart>
       </ResponsiveContainer>
     </div>
