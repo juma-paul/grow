@@ -23,6 +23,7 @@ function App() {
   const pause = useEventStore((state) => state.pause);
   const stepForward = useEventStore((state) => state.stepForward);
   const stepBack = useEventStore((state) => state.stepBack);
+  const seekTo = useEventStore((state) => state.seekTo);
   const speed = useEventStore((state) => state.speed);
   const setSpeed = useEventStore((state) => state.setSpeed);
   const { connect } = useEventStream();
@@ -103,6 +104,22 @@ function App() {
           {hasEvents && ` — event ${currentIndex + 1}/${totalEvents}`}
         </span>
       </div>
+
+      {hasEvents && (
+        <div className="flex items-center gap-3 border-b border-zinc-800 px-6 py-1.5">
+          <input
+            type="range"
+            min={-1}
+            max={totalEvents - 1}
+            value={currentIndex}
+            onChange={(e) => seekTo(Number(e.target.value))}
+            className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-zinc-700 accent-emerald-500 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-400"
+          />
+          <span className="shrink-0 text-xs tabular-nums text-zinc-500">
+            {currentIndex + 1} / {totalEvents}
+          </span>
+        </div>
+      )}
 
       <div className="min-h-0 flex-1 overflow-auto">
         <CanvasArray

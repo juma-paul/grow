@@ -47,6 +47,7 @@ interface EventStore {
   addEvents: (events: Event[]) => void;
   stepForward: () => void;
   stepBack: () => void;
+  seekTo: (index: number) => void;
   commitRetiring: () => void;
   play: () => void;
   pause: () => void;
@@ -175,6 +176,16 @@ export const useEventStore = create<EventStore>((set, get) => ({
       return;
     }
     set({ currentIndex: target, ...replayTo(events, target) });
+  },
+
+  seekTo: (index: number) => {
+    const { events } = get();
+    if (index < 0) {
+      set({ currentIndex: -1, ...freshState(), isPlaying: false });
+      return;
+    }
+    const clamped = Math.min(index, events.length - 1);
+    set({ currentIndex: clamped, ...replayTo(events, clamped) });
   },
 
   // Called after the amber→gray fade completes (~800ms after resize_end)
