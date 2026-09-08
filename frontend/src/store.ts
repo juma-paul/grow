@@ -23,6 +23,13 @@ interface RetiringState {
   length: number;
 }
 
+// One entry per append operation — cost = 1 for normal, 1+N for resize
+interface CostEntry {
+  op: number;
+  cost: number;
+  isResize: boolean;
+}
+
 interface EventStore {
   events: Event[];
   currentIndex: number;
@@ -31,6 +38,8 @@ interface EventStore {
   resize: ResizeState | null;
   retiring: RetiringState | null;
   pastArrays: PastArray[];
+  costs: CostEntry[];
+  pendingResizeCost: number;
   isPlaying: boolean;
   speed: number;
   count: number;
@@ -50,6 +59,8 @@ function applyEvent(
     resize: ResizeState | null;
     retiring: RetiringState | null;
     pastArrays: PastArray[];
+    costs: CostEntry[];
+    pendingResizeCost: number;
   },
   event: Event,
 ) {
@@ -57,6 +68,8 @@ function applyEvent(
   let resize = state.resize;
   let retiring = state.retiring;
   let pastArrays = state.pastArrays;
+  let costs = state.costs;
+  let pendingResizeCost = state.pendingResizeCost;
 
   if (event.type === "append_begin") {
     length = (event.length as number) + 1;
@@ -87,9 +100,23 @@ function applyEvent(
       retiring = { capacity: resize.oldCap, length: resize.copied.length };
     }
     resize = null;
+    pendingResizeCost = event.cost as number;
   }
 
-  return { length, capacity, resize, retiring, pastArrays };
+  if (event.type === "append_end") {
+    const totalCost = (event.cost as number) + pendingResizeCost;
+    costs = [
+      ...costs,
+      {
+        op: costs.length + 1,
+        cost: totalCost,
+        isResize: pendingResizeCost > 0,
+      },
+    ];
+    pendingResizeCost = 0;
+  }
+
+  return { length, capacity, resize, retiring, pastArrays, costs, pendingResizeCost };
 }
 
 export const useEventStore = create<EventStore>((set, get) => ({
@@ -100,6 +127,8 @@ export const useEventStore = create<EventStore>((set, get) => ({
   resize: null,
   retiring: null,
   pastArrays: [],
+  costs: [],
+  pendingResizeCost: 0,
   isPlaying: false,
   speed: 1,
   count: 20,
@@ -140,6 +169,8 @@ export const useEventStore = create<EventStore>((set, get) => ({
       resize: null,
       retiring: null,
       pastArrays: [],
+      costs: [],
+      pendingResizeCost: 0,
       isPlaying: false,
     }),
 }));

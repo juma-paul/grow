@@ -1,4 +1,5 @@
 import CanvasArray from "./components/CanvasArray";
+import CostGraph from "./components/CostGraph";
 import CodeDrawer from "./components/CodeDrawer";
 import { useEventStream } from "./hooks/useEventStream";
 import { useEventStore } from "./store";
@@ -46,7 +47,7 @@ function App() {
         </span>
       </div>
 
-      <div className="flex-1 overflow-auto pb-10">
+      <div className="min-h-0 flex-1 overflow-auto">
         <CanvasArray
           length={length}
           capacity={capacity}
@@ -55,6 +56,8 @@ function App() {
           pastArrays={pastArrays}
         />
       </div>
+
+      <CostGraph />
 
       <CodeDrawer />
     </div>
