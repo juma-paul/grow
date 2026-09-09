@@ -86,3 +86,26 @@ func TestOpLimitUnlimited(t *testing.T) {
 		t.Errorf("Len() = %d, want 1000", lst.Len())
 	}
 }
+
+func TestBothLimitsOpFiringFirst(t *testing.T) {
+	lst := NewVisualListWithLimits(CPythonGrowth{}, func(e events.Event) {
+	}, Limits{MaxOps: 5, MaxAlloc: 10_000_000})
+
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("expected panic")
+		}
+		le, ok := r.(LimitExceeded)
+		if !ok {
+			t.Fatalf("expected LimitExceeded, got %T", r)
+		}
+		if le.Reason != "operation limit exceeded" {
+			t.Errorf("expected op limit, got %q", le.Reason)
+		}
+	}()
+
+	for i := 0; i < 100; i++ {
+		lst.Append(i)
+	}
+}
