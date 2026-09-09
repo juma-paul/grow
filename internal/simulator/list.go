@@ -54,6 +54,9 @@ func (l *VisualList) resize(newLen int) {
 	}
 }
 
+// Len returns the number of elements in the list.
+func (l *VisualList) Len() int { return l.length }
+
 func NewVisualList(strategy GrowthStrategy, emit func(events.Event)) *VisualList {
 	return &VisualList{
 		strategy: strategy,
