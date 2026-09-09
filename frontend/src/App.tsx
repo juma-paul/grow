@@ -1,12 +1,11 @@
 import CanvasArray from "./components/CanvasArray";
 import CostGraph from "./components/CostGraph";
 import CodeDrawer from "./components/CodeDrawer";
+import PresetsPanel from "./components/PresetsPanel";
 import Rail from "./components/Rail";
-import { useEventStream } from "./hooks/useEventStream";
 import { useEventStore } from "./store";
 import { usePlayback } from "./hooks/usePlayback";
 
-const PRESETS = [5, 10, 15, 20];
 const SPEEDS = [0.5, 1, 2, 5];
 
 function App() {
@@ -18,8 +17,6 @@ function App() {
   const currentIndex = useEventStore((s) => s.currentIndex);
   const totalEvents = useEventStore((s) => s.events.length);
   const isPlaying = useEventStore((s) => s.isPlaying);
-  const count = useEventStore((s) => s.count);
-  const setCount = useEventStore((s) => s.setCount);
   const play = useEventStore((s) => s.play);
   const pause = useEventStore((s) => s.pause);
   const stepForward = useEventStore((s) => s.stepForward);
@@ -31,7 +28,6 @@ function App() {
   const strategy = useEventStore((s) => s.strategy);
   const setMode = useEventStore((s) => s.setMode);
   const setStrategy = useEventStore((s) => s.setStrategy);
-  const { connect } = useEventStream();
   usePlayback();
 
   const hasEvents = totalEvents > 0;
@@ -76,27 +72,22 @@ function App() {
 
       {/* Center stage */}
       <main className="flex flex-col min-h-0 overflow-hidden">
-        {/* Transport bar */}
-        <div className="flex flex-wrap items-center gap-3 border-b border-zinc-700 px-4 py-2">
-          <select
-            value={count}
-            onChange={(e) => setCount(Number(e.target.value))}
-            aria-label="Number of appends"
-            className="rounded bg-zinc-800 border border-zinc-600 px-2 py-1 text-sm"
-          >
-            {PRESETS.map((n) => (
-              <option key={n} value={n}>
-                Append {n}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={() => connect()}
-            className="rounded bg-emerald-600 px-4 py-1 text-sm font-medium hover:bg-emerald-500"
-          >
-            Run
-          </button>
-          {hasEvents && (
+        {/* Tab content */}
+        {mode === "presets" && <PresetsPanel />}
+        {mode === "wrapper" && (
+          <div className="border-b border-zinc-800 px-4 py-3 text-sm text-zinc-500">
+            Wrapper tab — coming soon
+          </div>
+        )}
+        {mode === "auto" && (
+          <div className="border-b border-zinc-800 px-4 py-3 text-sm text-zinc-500">
+            Auto tab — coming soon
+          </div>
+        )}
+
+        {/* Transport bar — playback controls only */}
+        {hasEvents && (
+          <div className="flex items-center gap-3 border-b border-zinc-700 px-4 py-2">
             <div className="flex items-center gap-1">
               <button
                 onClick={stepBack}
@@ -123,8 +114,6 @@ function App() {
                 ⏭
               </button>
             </div>
-          )}
-          {hasEvents && (
             <div className="flex items-center gap-1">
               {SPEEDS.map((s) => (
                 <button
@@ -142,13 +131,11 @@ function App() {
                 </button>
               ))}
             </div>
-          )}
-          {hasEvents && (
             <span className="ml-auto text-xs tabular-nums text-zinc-500">
               event {currentIndex + 1}/{totalEvents}
             </span>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Scrubber */}
         {hasEvents && (
