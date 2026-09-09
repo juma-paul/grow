@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useEventStore } from "../store";
 
 export function useEventStream() {
@@ -6,27 +6,40 @@ export function useEventStream() {
   const play = useEventStore((state) => state.play);
   const reset = useEventStore((state) => state.reset);
   const count = useEventStore((state) => state.count);
+  const wsRef = useRef<WebSocket | null>(null);
 
   const connect = useCallback(() => {
+    wsRef.current?.close();
     reset();
     const buffer: { type: string; [key: string]: unknown }[] = [];
-    const ws = new WebSocket(`ws://localhost:8080/execute?count=${count}`);
+    const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const ws = new WebSocket(
+      `${proto}//${window.location.host}/execute?count=${count}`,
+    );
+    wsRef.current = ws;
 
     ws.onmessage = (msg) => {
       buffer.push(JSON.parse(msg.data));
     };
 
     ws.onclose = () => {
-      addEvents(buffer);
-      play();
+      if (wsRef.current === ws) {
+        addEvents(buffer);
+        play();
+      }
     };
 
     ws.onerror = (err) => {
       console.error("WebSocket error:", err);
     };
-
-    return ws;
   }, [addEvents, play, reset, count]);
+
+  useEffect(() => {
+    return () => {
+      wsRef.current?.close();
+      wsRef.current = null;
+    };
+  }, []);
 
   return { connect };
 }

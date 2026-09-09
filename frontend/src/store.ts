@@ -6,19 +6,18 @@ interface Event {
   [key: string]: unknown;
 }
 
-interface ResizeState {
+export interface ResizeState {
   oldCap: number;
   newCap: number;
   copied: number[];
 }
 
-interface PastArray {
+export interface PastArray {
   capacity: number;
   length: number;
 }
 
-// Brief holding state: old array fades amber → gray before collapsing
-interface RetiringState {
+export interface RetiringState {
   capacity: number;
   length: number;
 }
@@ -41,6 +40,8 @@ interface EventStore {
   pastArrays: PastArray[];
   costs: CostEntry[];
   pendingResizeCost: number;
+  totalCost: number;
+  instantSeek: boolean;
   isPlaying: boolean;
   speed: number;
   count: number;
@@ -65,6 +66,7 @@ function applyEvent(
     pastArrays: PastArray[];
     costs: CostEntry[];
     pendingResizeCost: number;
+    totalCost: number;
   },
   event: Event,
 ) {
@@ -74,6 +76,7 @@ function applyEvent(
   let pastArrays = state.pastArrays;
   let costs = state.costs;
   let pendingResizeCost = state.pendingResizeCost;
+  let totalCost = state.totalCost;
 
   if (event.type === "append_begin") {
     length = (event.length as number) + 1;
@@ -108,22 +111,22 @@ function applyEvent(
   }
 
   if (event.type === "append_end") {
-    const totalCost = (event.cost as number) + pendingResizeCost;
-    const prevTotal = costs.reduce((sum, c) => sum + c.cost, 0);
+    const appendCost = (event.cost as number) + pendingResizeCost;
+    totalCost += appendCost;
     const opNum = costs.length + 1;
     costs = [
       ...costs,
       {
         op: opNum,
-        cost: totalCost,
+        cost: appendCost,
         isResize: pendingResizeCost > 0,
-        amortized: parseFloat(((prevTotal + totalCost) / opNum).toFixed(2)),
+        amortized: parseFloat((totalCost / opNum).toFixed(2)),
       },
     ];
     pendingResizeCost = 0;
   }
 
-  return { length, capacity, resize, retiring, pastArrays, costs, pendingResizeCost };
+  return { length, capacity, resize, retiring, pastArrays, costs, pendingResizeCost, totalCost };
 }
 
 function freshState() {
@@ -135,6 +138,7 @@ function freshState() {
     pastArrays: [] as PastArray[],
     costs: [] as CostEntry[],
     pendingResizeCost: 0,
+    totalCost: 0,
   };
 }
 
@@ -143,6 +147,14 @@ function replayTo(events: Event[], targetIndex: number) {
   for (let i = 0; i <= targetIndex; i++) {
     state = applyEvent(state, events[i]);
   }
+  // Instant replay has no animation — fold retiring into pastArrays immediately
+  if (state.retiring) {
+    state = {
+      ...state,
+      pastArrays: [...state.pastArrays, state.retiring],
+      retiring: null,
+    };
+  }
   return state;
 }
 
@@ -150,6 +162,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
   events: [],
   currentIndex: -1,
   ...freshState(),
+  instantSeek: false,
   isPlaying: false,
   speed: 1,
   count: 20,
@@ -164,7 +177,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
       return;
     }
     const updated = applyEvent(get(), events[next]);
-    set({ currentIndex: next, ...updated });
+    set({ currentIndex: next, instantSeek: false, ...updated });
   },
 
   stepBack: () => {
@@ -172,20 +185,20 @@ export const useEventStore = create<EventStore>((set, get) => ({
     if (currentIndex < 0) return;
     const target = currentIndex - 1;
     if (target < 0) {
-      set({ currentIndex: -1, ...freshState(), isPlaying: false });
+      set({ currentIndex: -1, ...freshState(), instantSeek: true, isPlaying: false });
       return;
     }
-    set({ currentIndex: target, ...replayTo(events, target) });
+    set({ currentIndex: target, instantSeek: true, ...replayTo(events, target) });
   },
 
   seekTo: (index: number) => {
     const { events } = get();
     if (index < 0) {
-      set({ currentIndex: -1, ...freshState(), isPlaying: false });
+      set({ currentIndex: -1, ...freshState(), instantSeek: true, isPlaying: false });
       return;
     }
     const clamped = Math.min(index, events.length - 1);
-    set({ currentIndex: clamped, ...replayTo(events, clamped) });
+    set({ currentIndex: clamped, instantSeek: true, ...replayTo(events, clamped) });
   },
 
   // Called after the amber→gray fade completes (~800ms after resize_end)

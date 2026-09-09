@@ -48,6 +48,8 @@ export default function CodeDrawer() {
       <div className="flex items-center border-t border-zinc-700 bg-zinc-800">
         <button
           onClick={() => setIsOpen(!isOpen)}
+          aria-expanded={isOpen}
+          aria-label="Toggle code editor"
           className="flex items-center gap-2 px-4 py-1.5 text-sm text-zinc-400 hover:text-white transition-colors cursor-pointer"
         >
           <span

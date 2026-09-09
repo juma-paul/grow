@@ -32,18 +32,26 @@ func HandleExecute(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
+	var writeErr error
 	lst := simulator.NewVisualList(simulator.CPythonGrowth{}, func(e events.Event) {
+		if writeErr != nil {
+			return
+		}
 		data, err := events.Marshal(e)
 		if err != nil {
 			log.Printf("marshal error: %v", err)
+			return
 		}
 		if err := conn.WriteMessage(websocket.TextMessage, data); err != nil {
-			log.Printf("write error: %v", err)
+			writeErr = err
 		}
 	})
 
 	for i := 0; i < count; i++ {
 		lst.Append(i)
+		if writeErr != nil {
+			break
+		}
 	}
 
 	// Signal clean shutdown to the client

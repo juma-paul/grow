@@ -2,7 +2,7 @@ package simulator
 
 import "fmt"
 
-// Interface (contract)
+// GrowthStrategy defines how a list chooses its new capacity on resize.
 type GrowthStrategy interface {
 	NextCapacity(needed int) int
 }

@@ -40,6 +40,7 @@ function App() {
         <select
           value={count}
           onChange={(e) => setCount(Number(e.target.value))}
+          aria-label="Number of appends"
           className="rounded bg-zinc-800 border border-zinc-600 px-2 py-1 text-sm"
         >
           {PRESETS.map((n) => (
@@ -59,6 +60,7 @@ function App() {
             <button
               onClick={stepBack}
               disabled={atStart}
+              aria-label="Step back"
               className="rounded px-2 py-1 text-sm font-medium hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed"
               title="Step back"
             >
@@ -67,6 +69,7 @@ function App() {
             <button
               onClick={isPlaying ? pause : play}
               disabled={atEnd && !isPlaying}
+              aria-label={isPlaying ? "Pause" : "Play"}
               className="rounded px-2 py-1 text-sm font-medium hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed"
               title={isPlaying ? "Pause" : "Play"}
             >
@@ -75,6 +78,7 @@ function App() {
             <button
               onClick={stepForward}
               disabled={atEnd}
+              aria-label="Step forward"
               className="rounded px-2 py-1 text-sm font-medium hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed"
               title="Step forward"
             >
@@ -88,6 +92,8 @@ function App() {
               <button
                 key={s}
                 onClick={() => setSpeed(s)}
+                aria-label={`Speed ${s}x`}
+                aria-pressed={speed === s}
                 className={`rounded px-2 py-1 text-xs font-medium ${
                   speed === s
                     ? "bg-zinc-600 text-white"
@@ -113,6 +119,7 @@ function App() {
             max={totalEvents - 1}
             value={currentIndex}
             onChange={(e) => seekTo(Number(e.target.value))}
+            aria-label="Event scrubber"
             className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-zinc-700 accent-emerald-500 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-400"
           />
           <span className="shrink-0 text-xs tabular-nums text-zinc-500">

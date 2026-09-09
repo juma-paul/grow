@@ -1,21 +1,7 @@
+import { useMemo } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { useEventStore } from "../store";
-
-interface ResizeState {
-  oldCap: number;
-  newCap: number;
-  copied: number[];
-}
-
-interface RetiringState {
-  capacity: number;
-  length: number;
-}
-
-interface PastArray {
-  capacity: number;
-  length: number;
-}
+import type { ResizeState, RetiringState, PastArray } from "../store";
 
 interface CanvasArrayProps {
   length: number;
@@ -25,7 +11,6 @@ interface CanvasArrayProps {
   pastArrays: PastArray[];
 }
 
-// Color sets for each cell state
 const colors = {
   filledNormal: {
     borderColor: "#10b981",
@@ -69,21 +54,21 @@ const colors = {
   },
 };
 
-// Emil Kowalski's signature easing — fast start, smooth settle
 const smoothEase = [0.32, 0.72, 0, 1] as const;
+const snap = { duration: 0 };
 
 function Cell({
   index,
   filled,
   variant,
   isFull,
-  reducedMotion,
+  noMotion,
 }: {
   index: number;
   filled: boolean;
   variant: "normal" | "old" | "old-copied" | "new" | "new-arrived" | "past";
   isFull?: boolean;
-  reducedMotion: boolean;
+  noMotion: boolean;
 }) {
   const showIndex = variant !== "old-copied" && variant !== "new" && filled;
 
@@ -109,7 +94,7 @@ function Cell({
       break;
   }
 
-  if (reducedMotion) {
+  if (noMotion) {
     return (
       <div
         className="flex h-12 w-12 items-center justify-center rounded-md border-2 text-sm font-mono font-semibold"
@@ -144,20 +129,40 @@ function Cell({
 function PastArrayRow({
   arr,
   index,
-  reducedMotion,
+  noMotion,
   layoutId,
 }: {
   arr: PastArray;
   index: number;
-  reducedMotion: boolean;
+  noMotion: boolean;
   layoutId: string;
 }) {
+  if (noMotion) {
+    return (
+      <div className="mb-4" style={{ opacity: 0.4 }}>
+        <div className="mb-1 text-xs text-zinc-500">
+          resize #{index + 1} — capacity {arr.capacity}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {Array.from({ length: arr.capacity }, (_, i) => (
+            <Cell
+              key={`past-${index}-${i}`}
+              index={i}
+              filled={i < arr.length}
+              variant="past"
+              noMotion
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <motion.div
       className="mb-4"
-      // layoutId morphs this from the retiring section's position
       layoutId={layoutId}
-      initial={reducedMotion ? false : { opacity: 0.4 }}
+      initial={false}
       animate={{ opacity: 0.4 }}
       transition={{
         layout: { duration: 0.3, ease: smoothEase },
@@ -174,7 +179,7 @@ function PastArrayRow({
             index={i}
             filled={i < arr.length}
             variant="past"
-            reducedMotion={reducedMotion}
+            noMotion={false}
           />
         ))}
       </div>
@@ -200,9 +205,14 @@ export default function CanvasArray({
   retiring,
   pastArrays,
 }: CanvasArrayProps) {
-  const copiedSet = resize ? new Set(resize.copied) : null;
+  const copiedSet = useMemo(
+    () => (resize ? new Set(resize.copied) : null),
+    [resize],
+  );
   const commitRetiring = useEventStore((s) => s.commitRetiring);
+  const instantSeek = useEventStore((s) => s.instantSeek);
   const reducedMotion = !!useReducedMotion();
+  const noMotion = reducedMotion || instantSeek;
 
   const oldVisible = !!(resize || retiring);
   const oldCap = resize ? resize.oldCap : retiring ? retiring.capacity : 0;
@@ -213,44 +223,40 @@ export default function CanvasArray({
 
   return (
     <div className="p-6">
-      {/* Past arrays — each gets a layoutId matching its resize number
-          so Motion can morph the retiring section into the new row */}
       {pastArrays.map((arr, i) => (
         <PastArrayRow
           key={`past-${i}`}
           arr={arr}
           index={i}
-          reducedMotion={reducedMotion}
+          noMotion={noMotion}
           layoutId={`resize-row-${i + 1}`}
         />
       ))}
 
-      {/* Old array — popLayout pops exiting elements out of flow so
-          the layout prop on siblings can animate smoothly via FLIP */}
       <AnimatePresence mode="popLayout">
         {oldVisible && (
           <motion.div
             key="old-array"
             className="mb-4 overflow-hidden"
-            // layoutId matches the PastArrayRow that will mount when we commit.
-            // Motion morphs this container into that row's position.
-            layoutId={`resize-row-${resizeNumber}`}
-            initial={reducedMotion ? false : { height: 0, opacity: 0 }}
+            layoutId={noMotion ? undefined : `resize-row-${resizeNumber}`}
+            initial={noMotion ? false : { height: 0, opacity: 0 }}
             animate={{
               height: "auto",
               opacity: isRetiring ? 0.4 : 1,
             }}
             exit={{ opacity: 0 }}
-            transition={{
-              height: { duration: 0.35, ease: smoothEase },
-              opacity: {
-                duration: isRetiring ? 0.5 : 0.25,
-                ease: smoothEase,
-              },
-              layout: { duration: 0.3, ease: smoothEase },
-            }}
-            // Fix 3: replace setTimeout with onAnimationComplete.
-            // Fires when ALL animate props finish — no fragile timers.
+            transition={
+              noMotion
+                ? snap
+                : {
+                    height: { duration: 0.35, ease: smoothEase },
+                    opacity: {
+                      duration: isRetiring ? 0.5 : 0.25,
+                      ease: smoothEase,
+                    },
+                    layout: { duration: 0.3, ease: smoothEase },
+                  }
+            }
             onAnimationComplete={() => {
               if (isRetiring) commitRetiring();
             }}
@@ -258,7 +264,7 @@ export default function CanvasArray({
             <motion.div
               className="mb-2 text-sm font-medium"
               animate={{ color: isRetiring ? "#71717a" : "#fbbf24" }}
-              transition={{ duration: 0.25, ease: smoothEase }}
+              transition={noMotion ? snap : { duration: 0.25, ease: smoothEase }}
             >
               {isRetiring
                 ? `resize #${resizeNumber} — capacity ${oldCap}`
@@ -271,14 +277,14 @@ export default function CanvasArray({
                   index={i}
                   filled={i < oldLength}
                   variant={oldCellVariant(i, resize, copiedSet)}
-                  reducedMotion={reducedMotion}
+                  noMotion={noMotion}
                 />
               ))}
             </div>
             <motion.div
               className="mt-3 flex items-center gap-2 text-sm font-medium"
               animate={{ color: isRetiring ? "#52525b" : "#a1a1aa" }}
-              transition={{ duration: 0.25, ease: smoothEase }}
+              transition={noMotion ? snap : { duration: 0.25, ease: smoothEase }}
             >
               {resize ? (
                 <>
@@ -297,10 +303,10 @@ export default function CanvasArray({
         )}
       </AnimatePresence>
 
-      {/* Current / new array — layout prop makes it glide smoothly
-          when old array unmounts. Stable keys (current-N) across
-          resize and normal states so React reuses DOM nodes. */}
-      <motion.div layout transition={{ layout: { duration: 0.3, ease: smoothEase } }}>
+      <motion.div
+        layout={!noMotion}
+        transition={noMotion ? snap : { layout: { duration: 0.3, ease: smoothEase } }}
+      >
         <div className="mb-2 text-sm font-medium text-emerald-400">
           {resize
             ? `new array — capacity ${resize.newCap}`
@@ -323,7 +329,7 @@ export default function CanvasArray({
                 filled={filled}
                 variant={variant}
                 isFull={isFull}
-                reducedMotion={reducedMotion}
+                noMotion={noMotion}
               />
             );
           })}

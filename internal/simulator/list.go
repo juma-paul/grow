@@ -6,6 +6,7 @@ import (
 	"github.com/juma-paul/grow/internal/events"
 )
 
+// VisualList wraps a dynamic array with event emission for visualization.
 type VisualList struct {
 	items     []any
 	length    int
@@ -22,6 +23,10 @@ func (l *VisualList) resize(newLen int) {
 
 	newCap := l.strategy.NextCapacity(newLen)
 	oldCap := l.allocated
+	if newCap == oldCap {
+		l.length = newLen
+		return
+	}
 	growing := newCap > oldCap
 
 	if growing {
@@ -31,11 +36,7 @@ func (l *VisualList) resize(newLen int) {
 	}
 
 	newItems := make([]any, newCap)
-	toCopy := l.length
-
-	if newLen < toCopy {
-		toCopy = newLen
-	}
+	toCopy := min(l.length, newLen)
 
 	for i := 0; i < toCopy; i++ {
 		newItems[i] = l.items[i]
@@ -55,11 +56,8 @@ func (l *VisualList) resize(newLen int) {
 
 func NewVisualList(strategy GrowthStrategy, emit func(events.Event)) *VisualList {
 	return &VisualList{
-		items:     nil,
-		length:    0,
-		allocated: 0,
-		strategy:  strategy,
-		emit:      emit,
+		strategy: strategy,
+		emit:     emit,
 	}
 }
 
