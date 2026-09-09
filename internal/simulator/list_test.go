@@ -186,6 +186,43 @@ func TestExtendLengthHint(t *testing.T) {
 	}
 }
 
+func TestNoGrowthOverflowEvent(t *testing.T) {
+	var log []events.Event
+	lst := NewVisualList(NoGrowth{Cap: 4}, func(e events.Event) {
+		log = append(log, e)
+	})
+
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("expected OverflowExceeded panic")
+		}
+		if _, ok := r.(OverflowExceeded); !ok {
+			t.Fatalf("expected OverflowExceeded, got %T", r)
+		}
+
+		var overflows []events.Overflow
+		for _, e := range log {
+			if o, ok := e.(events.Overflow); ok {
+				overflows = append(overflows, o)
+			}
+		}
+		if len(overflows) != 1 {
+			t.Fatalf("overflow count = %d, want 1", len(overflows))
+		}
+		if overflows[0].Capacity != 4 {
+			t.Errorf("overflow capacity = %d, want 4", overflows[0].Capacity)
+		}
+		if overflows[0].Needed != 5 {
+			t.Errorf("overflow needed = %d, want 5", overflows[0].Needed)
+		}
+	}()
+
+	for i := 0; i < 10; i++ {
+		lst.Append(i)
+	}
+}
+
 func TestReferenceSnapshot(t *testing.T) {
 	data, err := os.ReadFile("../../testdata/cpython_reference.json")
 	if err != nil {

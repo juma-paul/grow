@@ -25,6 +25,10 @@ func (l *VisualList) resize(newLen int) {
 	}
 
 	newCap := l.strategy.NextCapacity(newLen)
+	if newCap < 0 {
+		l.emit(events.Overflow{Needed: newLen, Capacity: l.allocated})
+		panic(OverflowExceeded{})
+	}
 	oldCap := l.allocated
 	if newCap == oldCap {
 		l.length = newLen

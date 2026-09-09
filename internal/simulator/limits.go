@@ -8,6 +8,11 @@ type LimitExceeded struct {
 	Reason string
 }
 
+// OverflowExceeded is a panic sentinel for NoGrowth capacity overflow.
+type OverflowExceeded struct{}
+
+func (OverflowExceeded) Error() string { return "capacity overflow" }
+
 func (e LimitExceeded) Error() string { return e.Reason }
 
 // Limits configures sandbox caps for a VisualList.

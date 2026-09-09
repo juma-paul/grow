@@ -62,7 +62,7 @@ var upgrader = websocket.Upgrader{
 }
 
 // HandleExecute upgrades to WebSocket and streams events for an
-// append scenario. Accepts ?count=N query param (default 20).
+// append scenario. Accepts ?count=N&strategy=NAME query params.
 func HandleExecute(w http.ResponseWriter, r *http.Request) {
 	count := 20
 	if q := r.URL.Query().Get("count"); q != "" {
@@ -71,15 +71,25 @@ func HandleExecute(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	conn, err := upgrader.Upgrade(w, r, nil)
+	strategyName := r.URL.Query().Get("strategy")
+	if strategyName == "" {
+		strategyName = "cpython"
+	}
+	strategy, err := simulator.StrategyByName(strategyName)
 	if err != nil {
-		log.Printf("websocket upgrade failed: %v", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	conn, upgradeErr := upgrader.Upgrade(w, r, nil)
+	if upgradeErr != nil {
+		log.Printf("websocket upgrade failed: %v", upgradeErr)
 		return
 	}
 	defer conn.Close()
 
 	var writeErr error
-	lst := simulator.NewVisualList(simulator.CPythonGrowth{}, func(e events.Event) {
+	lst := simulator.NewVisualList(strategy, func(e events.Event) {
 		if writeErr != nil {
 			return
 		}
@@ -93,20 +103,24 @@ func HandleExecute(w http.ResponseWriter, r *http.Request) {
 		}
 	})
 
+	defer func() {
+		if r := recover(); r != nil {
+			if _, ok := r.(simulator.OverflowExceeded); !ok {
+				panic(r)
+			}
+		}
+		conn.WriteMessage(
+			websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.CloseNormalClosure, "done"),
+		)
+		conn.SetReadDeadline(time.Now().Add(time.Second))
+		conn.ReadMessage()
+	}()
+
 	for i := 0; i < count; i++ {
 		lst.Append(i)
 		if writeErr != nil {
 			break
 		}
 	}
-
-	// Signal clean shutdown to the client
-	conn.WriteMessage(
-		websocket.CloseMessage,
-		websocket.FormatCloseMessage(websocket.CloseNormalClosure, "done"),
-	)
-
-	// Complete the close handshake by reading the client's close frame.
-	conn.SetReadDeadline(time.Now().Add(time.Second))
-	conn.ReadMessage()
 }

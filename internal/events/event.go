@@ -120,6 +120,14 @@ type ExtendEnd struct {
 
 func (ExtendEnd) Type() string { return "extend_end" }
 
+// Overflow fires when a NoGrowth strategy cannot accommodate a resize.
+type Overflow struct {
+	Needed   int `json:"needed"`
+	Capacity int `json:"capacity"`
+}
+
+func (Overflow) Type() string { return "overflow" }
+
 // LimitExceeded fires when an execution hits a sandbox cap.
 type LimitExceeded struct {
 	Reason string `json:"reason"`

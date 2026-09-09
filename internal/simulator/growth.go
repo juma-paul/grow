@@ -28,8 +28,7 @@ func (DoublingGrowth) NextCapacity(needed int) int {
 	return capacity
 }
 
-// OneAndAHalfGrowth implements Java ArrayList-style 1.5× growth.
-// Result is ceil(needed * 1.5), minimum 4.
+// OneAndAHalfGrowth implements 1.5× growth (used by Java, C++ MSVC, C#).
 type OneAndAHalfGrowth struct{}
 
 func (OneAndAHalfGrowth) NextCapacity(needed int) int {
@@ -37,8 +36,8 @@ func (OneAndAHalfGrowth) NextCapacity(needed int) int {
 	return max(4, grown)
 }
 
-// NoGrowth is a fixed-capacity strategy that panics on overflow.
-// Demonstrates what happens without dynamic resizing.
+// NoGrowth is a fixed-capacity strategy.
+// Returns -1 when capacity is exceeded, signaling overflow.
 type NoGrowth struct {
 	Cap int
 }
@@ -47,5 +46,21 @@ func (ng NoGrowth) NextCapacity(needed int) int {
 	if needed <= ng.Cap {
 		return ng.Cap
 	}
-	panic(fmt.Sprintf("NoGrowth: capacity %d exceeded, needed %d", ng.Cap, needed))
+	return -1
+}
+
+// StrategyByName maps a wire name to a GrowthStrategy.
+func StrategyByName(name string) (GrowthStrategy, error) {
+	switch name {
+	case "cpython":
+		return CPythonGrowth{}, nil
+	case "doubling":
+		return DoublingGrowth{}, nil
+	case "1.5x":
+		return OneAndAHalfGrowth{}, nil
+	case "nogrowth":
+		return NoGrowth{Cap: 4}, nil
+	default:
+		return nil, fmt.Errorf("unknown strategy: %q", name)
+	}
 }

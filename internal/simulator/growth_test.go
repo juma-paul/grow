@@ -106,7 +106,7 @@ func TestNoGrowthFits(t *testing.T) {
 	}
 }
 
-func TestNoGrowthPanicsOnOverflow(t *testing.T) {
+func TestNoGrowthReturnsSentinel(t *testing.T) {
 	cases := []struct {
 		cap, needed int
 	}{
@@ -117,12 +117,32 @@ func TestNoGrowthPanicsOnOverflow(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(fmt.Sprintf("cap=%d/needed=%d", tc.cap, tc.needed), func(t *testing.T) {
-			defer func() {
-				if r := recover(); r == nil {
-					t.Errorf("expected panic for cap=%d, needed=%d", tc.cap, tc.needed)
-				}
-			}()
-			NoGrowth{Cap: tc.cap}.NextCapacity(tc.needed)
+			got := NoGrowth{Cap: tc.cap}.NextCapacity(tc.needed)
+			if got != -1 {
+				t.Errorf("got %d, want -1", got)
+			}
 		})
 	}
+}
+
+func TestStrategyByName(t *testing.T) {
+	valid := []string{"cpython", "doubling", "1.5x", "nogrowth"}
+	for _, name := range valid {
+		t.Run(name, func(t *testing.T) {
+			s, err := StrategyByName(name)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if s == nil {
+				t.Fatal("got nil strategy")
+			}
+		})
+	}
+
+	t.Run("unknown", func(t *testing.T) {
+		_, err := StrategyByName("bogus")
+		if err == nil {
+			t.Fatal("expected error for unknown strategy")
+		}
+	})
 }
