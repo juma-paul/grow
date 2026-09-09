@@ -1,8 +1,8 @@
 import CanvasArray from "./components/CanvasArray";
 import CostGraph from "./components/CostGraph";
-import CodeDrawer from "./components/CodeDrawer";
 import PresetsPanel from "./components/PresetsPanel";
 import WrapperPanel from "./components/WrapperPanel";
+import AutoPanel from "./components/AutoPanel";
 import Rail from "./components/Rail";
 import { useEventStore } from "./store";
 import { usePlayback } from "./hooks/usePlayback";
@@ -76,11 +76,7 @@ function App() {
         {/* Tab content */}
         {mode === "presets" && <PresetsPanel />}
         {mode === "wrapper" && <WrapperPanel />}
-        {mode === "auto" && (
-          <div className="border-b border-zinc-800 px-4 py-3 text-sm text-zinc-500">
-            Auto tab — coming soon
-          </div>
-        )}
+        {mode === "auto" && <AutoPanel />}
 
         {/* Transport bar — playback controls only */}
         {hasEvents && (
@@ -164,7 +160,6 @@ function App() {
         </div>
 
         <CostGraph />
-        <CodeDrawer />
       </main>
     </div>
   );
