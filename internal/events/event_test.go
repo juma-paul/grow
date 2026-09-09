@@ -29,7 +29,6 @@ func TestMarshalResizeBegin(t *testing.T) {
 	}
 }
 
-
 func TestMarshalAppendBegin(t *testing.T) {
 	data, err := Marshal(AppendBegin{Value: 42, Length: 8, Capacity: 8})
 	if err != nil {
