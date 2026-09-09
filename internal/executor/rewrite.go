@@ -42,7 +42,8 @@ type rewriteOp struct {
 type opKind int
 
 const (
-	opWrapList opKind = iota // [x,y] → VisualList([x,y])
+	opWrapList   opKind = iota // [x,y] → VisualList([x,y])
+	opRenameList               // list( → VisualList(
 )
 
 // RewriteSource parses Python source, identifies list constructs via AST,
@@ -68,6 +69,14 @@ func RewriteSource(src string) (string, error) {
 						endCol: endCol,
 					})
 				}
+			}
+		case *ast.Call:
+			if name, ok := n.Func.(*ast.Name); ok && string(name.Id) == "list" {
+				ops = append(ops, rewriteOp{
+					line: name.GetLineno(),
+					col:  name.GetColOffset(),
+					kind: opRenameList,
+				})
 			}
 		}
 		return true
@@ -96,6 +105,10 @@ func RewriteSource(src string) (string, error) {
 		case opWrapList:
 			if op.col < len(line) && op.endCol < len(line) {
 				lines[idx] = line[:op.col] + "VisualList(" + line[op.col:op.endCol+1] + ")" + line[op.endCol+1:]
+			}
+		case opRenameList:
+			if op.col+4 <= len(line) && line[op.col:op.col+4] == "list" {
+				lines[idx] = line[:op.col] + "VisualList" + line[op.col+4:]
 			}
 		}
 	}
