@@ -120,6 +120,14 @@ type ExtendEnd struct {
 
 func (ExtendEnd) Type() string { return "extend_end" }
 
+// LimitExceeded fires when an execution hits a sandbox cap.
+type LimitExceeded struct {
+	Reason string `json:"reason"`
+	Count  int    `json:"count"`
+}
+
+func (LimitExceeded) Type() string { return "limit_exceeded" }
+
 // Marshal converts an Event to JSON with a "type" field injected.
 // The type value comes from e.Type() and is prepended to the struct's
 // serialized fields, producing output like:

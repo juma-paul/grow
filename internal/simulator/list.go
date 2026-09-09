@@ -8,11 +8,14 @@ import (
 
 // VisualList wraps a dynamic array with event emission for visualization.
 type VisualList struct {
-	items     []any
-	length    int
-	allocated int
-	strategy  GrowthStrategy
-	emit      func(events.Event)
+	items      []any
+	length     int
+	allocated  int
+	strategy   GrowthStrategy
+	emit       func(events.Event)
+	limits     Limits
+	opCount    int
+	allocTotal int
 }
 
 func (l *VisualList) resize(newLen int) {
@@ -34,6 +37,9 @@ func (l *VisualList) resize(newLen int) {
 	} else {
 		l.emit(events.ShrinkBegin{OldCap: oldCap, NewCap: newCap})
 	}
+
+	l.checkAllocLimit(newCap)
+	l.allocTotal += newCap
 
 	newItems := make([]any, newCap)
 	toCopy := min(l.length, newLen)
@@ -64,7 +70,17 @@ func NewVisualList(strategy GrowthStrategy, emit func(events.Event)) *VisualList
 	}
 }
 
+// NewVisualListWithLimits creates a VisualList with sandbox caps.
+func NewVisualListWithLimits(strategy GrowthStrategy, emit func(events.Event), limits Limits) *VisualList {
+	return &VisualList{
+		strategy: strategy,
+		emit:     emit,
+		limits:   limits,
+	}
+}
+
 func (l *VisualList) Append(value any) {
+	l.checkOpLimit()
 	l.emit(events.AppendBegin{
 		Value:    value,
 		Length:   l.length,
@@ -79,6 +95,7 @@ func (l *VisualList) Append(value any) {
 }
 
 func (l *VisualList) Pop() any {
+	l.checkOpLimit()
 	if l.length == 0 {
 		panic("pop from empty list")
 	}
@@ -101,6 +118,7 @@ func (l *VisualList) Pop() any {
 }
 
 func (l *VisualList) Insert(index int, value any) {
+	l.checkOpLimit()
 	if index < 0 || index > l.length {
 		panic(fmt.Sprintf("insert index %d out of range for list of length %d", index, l.length))
 	}
@@ -126,6 +144,7 @@ func (l *VisualList) Insert(index int, value any) {
 }
 
 func (l *VisualList) Extend(items []any) {
+	l.checkOpLimit()
 	hint := len(items)
 
 	l.emit(events.ExtendBegin{
