@@ -24,6 +24,7 @@ package executor
 
 import (
 	"bytes"
+	"fmt"
 	"sort"
 	"strings"
 
@@ -36,14 +37,20 @@ type rewriteOp struct {
 	line   int
 	col    int
 	kind   opKind
-	endCol int // for list literals: column of the closing ]
+	endCol int // for list literals / listcomp: column of the closing ]
+	// ListComp desugar fields
+	expr   string
+	target string
+	iter   string
+	seqID  int
 }
 
 type opKind int
 
 const (
-	opWrapList   opKind = iota // [x,y] → VisualList([x,y])
-	opRenameList               // list( → VisualList(
+	opWrapList        opKind = iota // [x,y] → VisualList([x,y])
+	opRenameList                    // list( → VisualList(
+	opDesugarListComp               // [expr for x in it] → for loop
 )
 
 // RewriteSource parses Python source, identifies list constructs via AST,
@@ -55,6 +62,8 @@ func RewriteSource(src string) (string, error) {
 	}
 
 	var ops []rewriteOp
+	compSeq := 0
+	srcLines := strings.Split(src, "\n")
 
 	ast.Walk(tree, func(node ast.Ast) bool {
 		switch n := node.(type) {
@@ -78,6 +87,34 @@ func RewriteSource(src string) (string, error) {
 					kind: opRenameList,
 				})
 			}
+		case *ast.ListComp:
+			if len(n.Generators) != 1 || len(n.Generators[0].Ifs) != 0 {
+				return true
+			}
+			endCol := findClosingBracket(src, n.GetLineno(), n.GetColOffset())
+			if endCol < 0 {
+				return true
+			}
+			lineIdx := n.GetLineno() - 1
+			if lineIdx < 0 || lineIdx >= len(srcLines) {
+				return true
+			}
+			compText := srcLines[lineIdx][n.GetColOffset()+1 : endCol]
+			expr, target, iter := splitComprehension(compText)
+			if expr == "" {
+				return true
+			}
+			ops = append(ops, rewriteOp{
+				line:   n.GetLineno(),
+				col:    n.GetColOffset(),
+				kind:   opDesugarListComp,
+				endCol: endCol,
+				expr:   expr,
+				target: target,
+				iter:   iter,
+				seqID:  compSeq,
+			})
+			compSeq++
 		}
 		return true
 	})
@@ -110,10 +147,79 @@ func RewriteSource(src string) (string, error) {
 			if op.col+4 <= len(line) && line[op.col:op.col+4] == "list" {
 				lines[idx] = line[:op.col] + "VisualList" + line[op.col+4:]
 			}
+		case opDesugarListComp:
+			var indent string
+			for _, ch := range line {
+				if ch != ' ' && ch != '\t' {
+					break
+				}
+				indent += string(ch)
+			}
+			tmpVar := fmt.Sprintf("_vlc%d", op.seqID)
+			newLine := line[:op.col] + tmpVar + line[op.endCol+1:]
+			preamble := []string{
+				indent + tmpVar + " = VisualList([])",
+				indent + "for " + op.target + " in " + op.iter + ":",
+				indent + "    " + tmpVar + ".append(" + op.expr + ")",
+			}
+			expanded := make([]string, 0, len(lines)+len(preamble))
+			expanded = append(expanded, lines[:idx]...)
+			expanded = append(expanded, preamble...)
+			expanded = append(expanded, newLine)
+			if idx+1 < len(lines) {
+				expanded = append(expanded, lines[idx+1:]...)
+			}
+			lines = expanded
 		}
 	}
 
 	return strings.Join(lines, "\n"), nil
+}
+
+// splitComprehension splits "expr for target in iter" into its three parts.
+func splitComprehension(text string) (expr, target, iter string) {
+	forIdx := findTopLevelKeyword(text, " for ")
+	if forIdx < 0 {
+		return "", "", ""
+	}
+	expr = strings.TrimSpace(text[:forIdx])
+	rest := text[forIdx+5:]
+
+	inIdx := findTopLevelKeyword(rest, " in ")
+	if inIdx < 0 {
+		return "", "", ""
+	}
+	target = strings.TrimSpace(rest[:inIdx])
+	iter = strings.TrimSpace(rest[inIdx+4:])
+	return expr, target, iter
+}
+
+// findTopLevelKeyword finds keyword at bracket/string depth 0.
+func findTopLevelKeyword(text, keyword string) int {
+	depth := 0
+	inStr := byte(0)
+	for i := 0; i <= len(text)-len(keyword); i++ {
+		ch := text[i]
+		if inStr != 0 {
+			if ch == inStr && (i == 0 || text[i-1] != '\\') {
+				inStr = 0
+			}
+			continue
+		}
+		switch ch {
+		case '"', '\'':
+			inStr = ch
+		case '[', '(':
+			depth++
+		case ']', ')':
+			depth--
+		default:
+			if depth == 0 && text[i:i+len(keyword)] == keyword {
+				return i
+			}
+		}
+	}
+	return -1
 }
 
 // findClosingBracket scans the source for the ] that matches the [ at the

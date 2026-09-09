@@ -98,3 +98,51 @@ func TestRewriteMultiLine(t *testing.T) {
 		t.Errorf("line 2 = %q", lines[2])
 	}
 }
+
+func TestRewriteListComp(t *testing.T) {
+	src := `y = [x*2 for x in range(3)]`
+	got, err := RewriteSource(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(got, "\n")
+	if len(lines) != 4 {
+		t.Fatalf("expected 4 lines, got %d:\n%s", len(lines), got)
+	}
+	if lines[0] != "_vlc0 = VisualList([])" {
+		t.Errorf("line 0 = %q", lines[0])
+	}
+	if lines[1] != "for x in range(3):" {
+		t.Errorf("line 1 = %q", lines[1])
+	}
+	if lines[2] != "    _vlc0.append(x*2)" {
+		t.Errorf("line 2 = %q", lines[2])
+	}
+	if lines[3] != "y = _vlc0" {
+		t.Errorf("line 3 = %q", lines[3])
+	}
+}
+
+func TestRewriteListCompIndented(t *testing.T) {
+	src := "if True:\n    z = [i for i in range(5)]"
+	got, err := RewriteSource(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(got, "\n")
+	if len(lines) != 5 {
+		t.Fatalf("expected 5 lines, got %d:\n%s", len(lines), got)
+	}
+	if lines[1] != "    _vlc0 = VisualList([])" {
+		t.Errorf("line 1 = %q", lines[1])
+	}
+	if lines[2] != "    for i in range(5):" {
+		t.Errorf("line 2 = %q", lines[2])
+	}
+	if lines[3] != "        _vlc0.append(i)" {
+		t.Errorf("line 3 = %q", lines[3])
+	}
+	if lines[4] != "    z = _vlc0" {
+		t.Errorf("line 4 = %q", lines[4])
+	}
+}
