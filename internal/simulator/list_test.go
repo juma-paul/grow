@@ -223,7 +223,7 @@ func TestNoGrowthOverflowEvent(t *testing.T) {
 	}
 }
 
-func TestResizeBeginSourceRef(t *testing.T) {
+func TestSourceRefOnAllEvents(t *testing.T) {
 	var log []events.Event
 	lst := NewVisualList(CPythonGrowth{}, func(e events.Event) {
 		log = append(log, e)
@@ -232,16 +232,63 @@ func TestResizeBeginSourceRef(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		lst.Append(i)
 	}
+	lst.Insert(0, 99)
+	lst.Pop()
+	lst.Extend([]any{1, 2, 3})
 
+	refs := map[string]string{}
 	for _, e := range log {
-		if rb, ok := e.(events.ResizeBegin); ok {
-			if rb.SourceRef != "list_resize:growth-formula" {
-				t.Errorf("ResizeBegin.SourceRef = %q, want %q", rb.SourceRef, "list_resize:growth-formula")
-			}
-			return
+		switch ev := e.(type) {
+		case events.AppendBegin:
+			refs["append_begin"] = ev.SourceRef
+		case events.AppendEnd:
+			refs["append_end"] = ev.SourceRef
+		case events.ResizeBegin:
+			refs["resize_begin"] = ev.SourceRef
+		case events.ResizeEnd:
+			refs["resize_end"] = ev.SourceRef
+		case events.CopyElement:
+			refs["copy_element"] = ev.SourceRef
+		case events.InsertBegin:
+			refs["insert_begin"] = ev.SourceRef
+		case events.InsertEnd:
+			refs["insert_end"] = ev.SourceRef
+		case events.ShiftRight:
+			refs["shift_right"] = ev.SourceRef
+		case events.PopBegin:
+			refs["pop_begin"] = ev.SourceRef
+		case events.PopEnd:
+			refs["pop_end"] = ev.SourceRef
+		case events.ExtendBegin:
+			refs["extend_begin"] = ev.SourceRef
+		case events.ExtendEnd:
+			refs["extend_end"] = ev.SourceRef
 		}
 	}
-	t.Fatal("no ResizeBegin event found")
+
+	want := map[string]string{
+		"append_begin": "list_append:PyList_Append",
+		"append_end":   "list_append:PyList_Append",
+		"resize_begin": "list_resize:growth-formula",
+		"resize_end":   "list_resize:growth-formula",
+		"copy_element": "list_resize:memcpy",
+		"insert_begin": "list_insert:ins1",
+		"insert_end":   "list_insert:ins1",
+		"shift_right":  "list_insert:ins1",
+		"pop_begin":    "list_pop:PyList_Pop",
+		"pop_end":      "list_pop:PyList_Pop",
+		"extend_begin": "list_extend:PyList_Extend",
+		"extend_end":   "list_extend:PyList_Extend",
+	}
+
+	for evType, wantRef := range want {
+		got, ok := refs[evType]
+		if !ok {
+			t.Errorf("no %s event found", evType)
+		} else if got != wantRef {
+			t.Errorf("%s.SourceRef = %q, want %q", evType, got, wantRef)
+		}
+	}
 }
 
 func TestReferenceSnapshot(t *testing.T) {

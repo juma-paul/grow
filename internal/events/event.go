@@ -22,7 +22,8 @@ func (AppendBegin) Type() string { return "append_begin" }
 
 // AppendEnd fires when an append operation completes.
 type AppendEnd struct {
-	Cost int `json:"cost"`
+	Cost      int    `json:"cost"`
+	SourceRef string `json:"source_ref,omitempty"`
 }
 
 func (AppendEnd) Type() string { return "append_end" }
@@ -73,55 +74,62 @@ func (ShrinkEnd) Type() string { return "shrink_end" }
 
 // PopBegin fires when a pop operation starts.
 type PopBegin struct {
-	Length   int `json:"length"`
-	Capacity int `json:"capacity"`
+	Length    int    `json:"length"`
+	Capacity  int    `json:"capacity"`
+	SourceRef string `json:"source_ref,omitempty"`
 }
 
 func (PopBegin) Type() string { return "pop_begin" }
 
 // PopEnd fires when a pop operation completes.
 type PopEnd struct {
-	Cost int `json:"cost"`
+	Cost      int    `json:"cost"`
+	SourceRef string `json:"source_ref,omitempty"`
 }
 
 func (PopEnd) Type() string { return "pop_end" }
 
 // InsertBegin fires when an insert operation starts.
 type InsertBegin struct {
-	Index    int `json:"index"`
-	Value    any `json:"value"`
-	Length   int `json:"length"`
-	Capacity int `json:"capacity"`
+	Index     int    `json:"index"`
+	Value     any    `json:"value"`
+	Length    int    `json:"length"`
+	Capacity  int    `json:"capacity"`
+	SourceRef string `json:"source_ref,omitempty"`
 }
 
 func (InsertBegin) Type() string { return "insert_begin" }
 
 // InsertEnd fires when an insert operation completes.
 type InsertEnd struct {
-	Cost int `json:"cost"`
+	Cost      int    `json:"cost"`
+	SourceRef string `json:"source_ref,omitempty"`
 }
 
 func (InsertEnd) Type() string { return "insert_end" }
 
 // ShiftRight fires for each element shifted during an insert.
 type ShiftRight struct {
-	Index int `json:"index"`
+	Index     int    `json:"index"`
+	SourceRef string `json:"source_ref,omitempty"`
 }
 
 func (ShiftRight) Type() string { return "shift_right" }
 
 // ExtendBegin fires when an extend operation starts.
 type ExtendBegin struct {
-	Items    int `json:"items"`
-	Length   int `json:"length"`
-	Capacity int `json:"capacity"`
+	Items     int    `json:"items"`
+	Length    int    `json:"length"`
+	Capacity  int    `json:"capacity"`
+	SourceRef string `json:"source_ref,omitempty"`
 }
 
 func (ExtendBegin) Type() string { return "extend_begin" }
 
 // ExtendEnd fires when an extend operation completes.
 type ExtendEnd struct {
-	Cost int `json:"cost"`
+	Cost      int    `json:"cost"`
+	SourceRef string `json:"source_ref,omitempty"`
 }
 
 func (ExtendEnd) Type() string { return "extend_end" }

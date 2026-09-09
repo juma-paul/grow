@@ -89,14 +89,14 @@ func (l *VisualList) Append(value any) {
 		Value:     value,
 		Length:    l.length,
 		Capacity:  l.allocated,
-		SourceRef: "list_append:push-back",
+		SourceRef: "list_append:PyList_Append",
 	})
 
 	oldLen := l.length
 	l.resize(l.length + 1)
 	l.items[oldLen] = value
 
-	l.emit(events.AppendEnd{Cost: 1})
+	l.emit(events.AppendEnd{Cost: 1, SourceRef: "list_append:PyList_Append"})
 }
 
 func (l *VisualList) Pop() any {
@@ -106,18 +106,18 @@ func (l *VisualList) Pop() any {
 	}
 
 	l.emit(events.PopBegin{
-		Length:   l.length,
-		Capacity: l.allocated,
+		Length:    l.length,
+		Capacity:  l.allocated,
+		SourceRef: "list_pop:PyList_Pop",
 	})
 
 	l.length--
 
 	value := l.items[l.length]
-	// clear the reference
 	l.items[l.length] = nil
 	l.resize(l.length)
 
-	l.emit(events.PopEnd{Cost: 1})
+	l.emit(events.PopEnd{Cost: 1, SourceRef: "list_pop:PyList_Pop"})
 
 	return value
 }
@@ -129,23 +129,23 @@ func (l *VisualList) Insert(index int, value any) {
 	}
 
 	l.emit(events.InsertBegin{
-		Index:    index,
-		Value:    value,
-		Length:   l.length,
-		Capacity: l.allocated,
+		Index:     index,
+		Value:     value,
+		Length:    l.length,
+		Capacity:  l.allocated,
+		SourceRef: "list_insert:ins1",
 	})
 
 	l.resize(l.length + 1)
 
-	// Shift elements right, from end toward insertion point
 	for i := l.length - 1; i > index; i-- {
 		l.items[i] = l.items[i-1]
-		l.emit(events.ShiftRight{Index: i})
+		l.emit(events.ShiftRight{Index: i, SourceRef: "list_insert:ins1"})
 	}
 
 	l.items[index] = value
 
-	l.emit(events.InsertEnd{Cost: l.length - index})
+	l.emit(events.InsertEnd{Cost: l.length - index, SourceRef: "list_insert:ins1"})
 }
 
 func (l *VisualList) Extend(items []any) {
@@ -153,18 +153,17 @@ func (l *VisualList) Extend(items []any) {
 	hint := len(items)
 
 	l.emit(events.ExtendBegin{
-		Items:    hint,
-		Length:   l.length,
-		Capacity: l.allocated,
+		Items:     hint,
+		Length:    l.length,
+		Capacity:  l.allocated,
+		SourceRef: "list_extend:PyList_Extend",
 	})
 
-	// Pre-size: one resize for all items (the length-hint optimization)
 	l.resize(l.length + hint)
 
-	// Place each element — no further resizes needed
 	for i, v := range items {
 		l.items[l.length-hint+i] = v
 	}
 
-	l.emit(events.ExtendEnd{Cost: hint})
+	l.emit(events.ExtendEnd{Cost: hint, SourceRef: "list_extend:PyList_Extend"})
 }
