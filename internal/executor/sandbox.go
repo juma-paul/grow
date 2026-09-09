@@ -1,8 +1,33 @@
 package executor
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/go-python/gpython/py"
 )
+
+type runResult struct {
+	obj py.Object
+	err error
+}
+
+// RunWithTimeout executes compiled code with a wall-clock deadline.
+// If the deadline expires, returns a timeout error. The underlying
+// goroutine may continue until op/alloc limits stop it.
+func RunWithTimeout(ctx py.Context, code *py.Code, globals, locals py.StringDict, timeout time.Duration) (py.Object, error) {
+	ch := make(chan runResult, 1)
+	go func() {
+		obj, err := ctx.RunCode(code, globals, locals, nil)
+		ch <- runResult{obj, err}
+	}()
+	select {
+	case r := <-ch:
+		return r.obj, r.err
+	case <-time.After(timeout):
+		return nil, fmt.Errorf("execution timed out after %s", timeout)
+	}
+}
 
 var blockedBuiltins = []string{
 	"open",
