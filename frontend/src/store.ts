@@ -59,6 +59,7 @@ interface EventStore {
   pause: () => void;
   setSpeed: (speed: number) => void;
   setCount: (count: number) => void;
+  focusedRef: string | null;
   setMode: (mode: Mode) => void;
   setStrategy: (strategy: Strategy) => void;
   reset: () => void;
@@ -175,6 +176,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
   count: 20,
   mode: "presets",
   strategy: "cpython",
+  focusedRef: null,
 
   addEvents: (events) => set({ events }),
 
@@ -186,7 +188,8 @@ export const useEventStore = create<EventStore>((set, get) => ({
       return;
     }
     const updated = applyEvent(get(), events[next]);
-    set({ currentIndex: next, instantSeek: false, ...updated });
+    const ref = (events[next].source_ref as string) || null;
+    set({ currentIndex: next, instantSeek: false, focusedRef: ref, ...updated });
   },
 
   stepBack: () => {
@@ -194,20 +197,22 @@ export const useEventStore = create<EventStore>((set, get) => ({
     if (currentIndex < 0) return;
     const target = currentIndex - 1;
     if (target < 0) {
-      set({ currentIndex: -1, ...freshState(), instantSeek: true, isPlaying: false });
+      set({ currentIndex: -1, ...freshState(), instantSeek: true, isPlaying: false, focusedRef: null });
       return;
     }
-    set({ currentIndex: target, instantSeek: true, ...replayTo(events, target) });
+    const ref = (events[target].source_ref as string) || null;
+    set({ currentIndex: target, instantSeek: true, focusedRef: ref, ...replayTo(events, target) });
   },
 
   seekTo: (index: number) => {
     const { events } = get();
     if (index < 0) {
-      set({ currentIndex: -1, ...freshState(), instantSeek: true, isPlaying: false });
+      set({ currentIndex: -1, ...freshState(), instantSeek: true, isPlaying: false, focusedRef: null });
       return;
     }
     const clamped = Math.min(index, events.length - 1);
-    set({ currentIndex: clamped, instantSeek: true, ...replayTo(events, clamped) });
+    const ref = (events[clamped].source_ref as string) || null;
+    set({ currentIndex: clamped, instantSeek: true, focusedRef: ref, ...replayTo(events, clamped) });
   },
 
   // Called after the amber→gray fade completes (~800ms after resize_end)
@@ -233,5 +238,6 @@ export const useEventStore = create<EventStore>((set, get) => ({
       currentIndex: -1,
       ...freshState(),
       isPlaying: false,
+      focusedRef: null,
     }),
 }));

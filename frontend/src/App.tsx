@@ -4,6 +4,7 @@ import PresetsPanel from "./components/PresetsPanel";
 import WrapperPanel from "./components/WrapperPanel";
 import AutoPanel from "./components/AutoPanel";
 import Rail from "./components/Rail";
+import ExplanationPanel from "./components/ExplanationPanel";
 import { useEventStore } from "./store";
 import { usePlayback } from "./hooks/usePlayback";
 
@@ -159,6 +160,7 @@ function App() {
           />
         </div>
 
+        <ExplanationPanel />
         <CostGraph />
       </main>
     </div>
