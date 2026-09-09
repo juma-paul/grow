@@ -26,7 +26,7 @@ func (l *VisualList) resize(newLen int) {
 
 	newCap := l.strategy.NextCapacity(newLen)
 	if newCap < 0 {
-		l.emit(events.Overflow{Needed: newLen, Capacity: l.allocated})
+		l.emit(events.Overflow{Needed: newLen, Capacity: l.allocated, SourceRef: "list_resize:overflow"})
 		panic(OverflowExceeded{})
 	}
 	oldCap := l.allocated
@@ -37,9 +37,9 @@ func (l *VisualList) resize(newLen int) {
 	growing := newCap > oldCap
 
 	if growing {
-		l.emit(events.ResizeBegin{OldCap: oldCap, NewCap: newCap})
+		l.emit(events.ResizeBegin{OldCap: oldCap, NewCap: newCap, SourceRef: "list_resize:growth-formula"})
 	} else {
-		l.emit(events.ShrinkBegin{OldCap: oldCap, NewCap: newCap})
+		l.emit(events.ShrinkBegin{OldCap: oldCap, NewCap: newCap, SourceRef: "list_resize:shrink-check"})
 	}
 
 	l.checkAllocLimit(newCap)
@@ -50,7 +50,7 @@ func (l *VisualList) resize(newLen int) {
 
 	for i := 0; i < toCopy; i++ {
 		newItems[i] = l.items[i]
-		l.emit(events.CopyElement{From: i, To: i, Value: l.items[i]})
+		l.emit(events.CopyElement{From: i, To: i, Value: l.items[i], SourceRef: "list_resize:memcpy"})
 	}
 
 	l.items = newItems
@@ -58,9 +58,9 @@ func (l *VisualList) resize(newLen int) {
 	l.length = newLen
 
 	if growing {
-		l.emit(events.ResizeEnd{Cost: toCopy})
+		l.emit(events.ResizeEnd{Cost: toCopy, SourceRef: "list_resize:growth-formula"})
 	} else {
-		l.emit(events.ShrinkEnd{Cost: toCopy})
+		l.emit(events.ShrinkEnd{Cost: toCopy, SourceRef: "list_resize:shrink-check"})
 	}
 }
 
@@ -86,9 +86,10 @@ func NewVisualListWithLimits(strategy GrowthStrategy, emit func(events.Event), l
 func (l *VisualList) Append(value any) {
 	l.checkOpLimit()
 	l.emit(events.AppendBegin{
-		Value:    value,
-		Length:   l.length,
-		Capacity: l.allocated,
+		Value:     value,
+		Length:    l.length,
+		Capacity:  l.allocated,
+		SourceRef: "list_append:push-back",
 	})
 
 	oldLen := l.length

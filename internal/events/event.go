@@ -12,9 +12,10 @@ type Event interface {
 
 // AppendBegin fires when an append operation starts.
 type AppendBegin struct {
-	Value    any `json:"value"`
-	Length   int `json:"length"`
-	Capacity int `json:"capacity"`
+	Value     any    `json:"value"`
+	Length    int    `json:"length"`
+	Capacity  int    `json:"capacity"`
+	SourceRef string `json:"source_ref,omitempty"`
 }
 
 func (AppendBegin) Type() string { return "append_begin" }
@@ -28,39 +29,44 @@ func (AppendEnd) Type() string { return "append_end" }
 
 // ResizeBegin fires when the array grows to a larger capacity.
 type ResizeBegin struct {
-	OldCap int `json:"old_cap"`
-	NewCap int `json:"new_cap"`
+	OldCap    int    `json:"old_cap"`
+	NewCap    int    `json:"new_cap"`
+	SourceRef string `json:"source_ref,omitempty"`
 }
 
 func (ResizeBegin) Type() string { return "resize_begin" }
 
 // ResizeEnd fires when a resize completes.
 type ResizeEnd struct {
-	Cost int `json:"cost"`
+	Cost      int    `json:"cost"`
+	SourceRef string `json:"source_ref,omitempty"`
 }
 
 func (ResizeEnd) Type() string { return "resize_end" }
 
 // CopyElement fires for each element copied during a resize.
 type CopyElement struct {
-	From  int `json:"from"`
-	To    int `json:"to"`
-	Value any `json:"value"`
+	From      int    `json:"from"`
+	To        int    `json:"to"`
+	Value     any    `json:"value"`
+	SourceRef string `json:"source_ref,omitempty"`
 }
 
 func (CopyElement) Type() string { return "copy_element" }
 
 // ShrinkBegin fires when the array shrinks to a smaller capacity.
 type ShrinkBegin struct {
-	OldCap int `json:"old_cap"`
-	NewCap int `json:"new_cap"`
+	OldCap    int    `json:"old_cap"`
+	NewCap    int    `json:"new_cap"`
+	SourceRef string `json:"source_ref,omitempty"`
 }
 
 func (ShrinkBegin) Type() string { return "shrink_begin" }
 
 // ShrinkEnd fires when a shrink completes.
 type ShrinkEnd struct {
-	Cost int `json:"cost"`
+	Cost      int    `json:"cost"`
+	SourceRef string `json:"source_ref,omitempty"`
 }
 
 func (ShrinkEnd) Type() string { return "shrink_end" }
@@ -122,8 +128,9 @@ func (ExtendEnd) Type() string { return "extend_end" }
 
 // Overflow fires when a NoGrowth strategy cannot accommodate a resize.
 type Overflow struct {
-	Needed   int `json:"needed"`
-	Capacity int `json:"capacity"`
+	Needed    int    `json:"needed"`
+	Capacity  int    `json:"capacity"`
+	SourceRef string `json:"source_ref,omitempty"`
 }
 
 func (Overflow) Type() string { return "overflow" }

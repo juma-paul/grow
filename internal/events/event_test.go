@@ -29,6 +29,38 @@ func TestMarshalResizeBegin(t *testing.T) {
 	}
 }
 
+func TestMarshalResizeBeginWithSourceRef(t *testing.T) {
+	data, err := Marshal(ResizeBegin{OldCap: 4, NewCap: 8, SourceRef: "list_resize:growth-formula"})
+	if err != nil {
+		t.Fatalf("marshal error: %v", err)
+	}
+
+	var result map[string]any
+	if err := json.Unmarshal(data, &result); err != nil {
+		t.Fatalf("unmarshal error: %v", err)
+	}
+
+	if result["source_ref"] != "list_resize:growth-formula" {
+		t.Errorf("source_ref = %v, want list_resize:growth-formula", result["source_ref"])
+	}
+}
+
+func TestMarshalResizeBeginOmitsEmptySourceRef(t *testing.T) {
+	data, err := Marshal(ResizeBegin{OldCap: 4, NewCap: 8})
+	if err != nil {
+		t.Fatalf("marshal error: %v", err)
+	}
+
+	var result map[string]any
+	if err := json.Unmarshal(data, &result); err != nil {
+		t.Fatalf("unmarshal error: %v", err)
+	}
+
+	if _, ok := result["source_ref"]; ok {
+		t.Errorf("source_ref should be omitted when empty, got %v", result["source_ref"])
+	}
+}
+
 func TestMarshalAppendBegin(t *testing.T) {
 	data, err := Marshal(AppendBegin{Value: 42, Length: 8, Capacity: 8})
 	if err != nil {

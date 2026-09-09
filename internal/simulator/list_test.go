@@ -223,6 +223,27 @@ func TestNoGrowthOverflowEvent(t *testing.T) {
 	}
 }
 
+func TestResizeBeginSourceRef(t *testing.T) {
+	var log []events.Event
+	lst := NewVisualList(CPythonGrowth{}, func(e events.Event) {
+		log = append(log, e)
+	})
+
+	for i := 0; i < 5; i++ {
+		lst.Append(i)
+	}
+
+	for _, e := range log {
+		if rb, ok := e.(events.ResizeBegin); ok {
+			if rb.SourceRef != "list_resize:growth-formula" {
+				t.Errorf("ResizeBegin.SourceRef = %q, want %q", rb.SourceRef, "list_resize:growth-formula")
+			}
+			return
+		}
+	}
+	t.Fatal("no ResizeBegin event found")
+}
+
 func TestReferenceSnapshot(t *testing.T) {
 	data, err := os.ReadFile("../../testdata/cpython_reference.json")
 	if err != nil {
