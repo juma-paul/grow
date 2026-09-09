@@ -1,5 +1,5 @@
 import { useEventStore } from "../store";
-import { snippets, CPYTHON_VERSION } from "../cpython-snippets";
+import { snippets, citations, CPYTHON_VERSION } from "../cpython-snippets";
 import { narrate } from "../narrate";
 
 const highlights: Record<string, { title: string; lines: [number, number] }> = {
@@ -22,6 +22,7 @@ export default function ExplanationPanel() {
 
   const snippet = snippets[focusedRef];
   const highlight = highlights[focusedRef];
+  const citation = citations[focusedRef];
 
   if (!snippet || !highlight) return null;
 
@@ -62,6 +63,16 @@ export default function ExplanationPanel() {
             );
           })}
         </pre>
+        {citation && (
+          <a
+            href={citation}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-block text-xs text-zinc-500 hover:text-emerald-400 underline underline-offset-2"
+          >
+            View in CPython source (v{CPYTHON_VERSION})
+          </a>
+        )}
       </div>
     </div>
   );
