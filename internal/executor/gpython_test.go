@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/go-python/gpython/py"
+	"github.com/juma-paul/grow/internal/events"
+	"github.com/juma-paul/grow/internal/simulator"
 
 	_ "github.com/go-python/gpython/stdlib"
 )
@@ -236,4 +238,69 @@ for x in VisualList:
 	if strings.TrimSpace(lines[0]) != "4" {
 		t.Errorf("len = %q, want '4'", lines[0])
 	}
+}
+
+// M5.6 DECISION GATE: gpython event stream must match simulator-direct
+func TestGpythonParityWith100Appends(t *testing.T) {
+	// Simulator-direct: 100 appends, collect event types
+	var directEvents []events.Event
+	lst := simulator.NewVisualList(simulator.CPythonGrowth{}, func(e events.Event) {
+		directEvents = append(directEvents, e)
+	})
+	for i := 0; i < 100; i++ {
+		lst.Append(i)
+	}
+
+	// Gpython: 100 appends through PyVisualList
+	pvl, _ := runPython(t, `
+for i in range(100):
+    VisualList.append(i)
+`)
+
+	// Compare event counts
+	if len(pvl.Events) != len(directEvents) {
+		t.Fatalf("event count: gpython=%d, direct=%d", len(pvl.Events), len(directEvents))
+	}
+
+	// Compare event type sequences
+	for i := range directEvents {
+		got := pvl.Events[i].Type()
+		want := directEvents[i].Type()
+		if got != want {
+			t.Errorf("event[%d]: gpython=%q, direct=%q", i, got, want)
+		}
+	}
+
+	// Compare final state
+	if pvl.inner.Len() != lst.Len() {
+		t.Errorf("final length: gpython=%d, direct=%d", pvl.inner.Len(), lst.Len())
+	}
+
+	// Compare resize points (which appends triggered a resize)
+	directResizes := resizePoints(directEvents)
+	gpythonResizes := resizePoints(pvl.Events)
+	if len(directResizes) != len(gpythonResizes) {
+		t.Fatalf("resize count: gpython=%d, direct=%d", len(gpythonResizes), len(directResizes))
+	}
+	for i := range directResizes {
+		if directResizes[i] != gpythonResizes[i] {
+			t.Errorf("resize point %d: gpython=%d, direct=%d", i, gpythonResizes[i], directResizes[i])
+		}
+	}
+
+	t.Logf("DECISION GATE PASSED: %d events, %d resizes, identical streams", len(pvl.Events), len(gpythonResizes))
+}
+
+func resizePoints(evts []events.Event) []int {
+	var points []int
+	appendNum := 0
+	for _, e := range evts {
+		if e.Type() == "append_begin" {
+			appendNum++
+		}
+		if e.Type() == "resize_begin" {
+			points = append(points, appendNum)
+		}
+	}
+	return points
 }
