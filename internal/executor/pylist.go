@@ -36,6 +36,35 @@ func NewPyVisualList() *PyVisualList {
 	return pvl
 }
 
+// NewVisualListFactory returns a callable that constructs PyVisualList
+// instances. All instances share the same event emitter, so events from
+// multiple lists land in one stream.
+func NewVisualListFactory(emit func(events.Event)) *py.Method {
+	return py.MustNewMethod("VisualList", func(self py.Object, args py.Tuple) (py.Object, error) {
+		pvl := &PyVisualList{}
+		pvl.inner = simulator.NewVisualList(simulator.CPythonGrowth{}, emit)
+		if len(args) == 0 {
+			return pvl, nil
+		}
+		iter, err := py.Iter(args[0])
+		if err != nil {
+			return nil, err
+		}
+		for {
+			item, err := py.Next(iter)
+			if err != nil {
+				if py.IsException(py.StopIteration, err) {
+					break
+				}
+				return nil, err
+			}
+			pvl.inner.Append(item)
+			pvl.items = append(pvl.items, item)
+		}
+		return pvl, nil
+	}, 0, "VisualList([iterable]) -- create a visualized list")
+}
+
 // M__len__ implements len(lst).
 func (p *PyVisualList) M__len__() (py.Object, error) {
 	return py.Int(p.inner.Len()), nil

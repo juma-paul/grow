@@ -14,6 +14,7 @@ func main() {
 	})
 
 	http.HandleFunc("/execute", server.HandleExecute)
+	http.HandleFunc("/auto", server.HandleAutoExecute)
 
 	http.Handle("/", server.FrontendHandler())
 

@@ -8,8 +8,54 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/juma-paul/grow/internal/events"
+	"github.com/juma-paul/grow/internal/executor"
 	"github.com/juma-paul/grow/internal/simulator"
 )
+
+const autoTimeout = 5 * time.Second
+
+// HandleAutoExecute upgrades to WebSocket, reads user Python source,
+// rewrites it so list ops go through VisualList, executes in a sandbox,
+// and streams the collected events back.
+func HandleAutoExecute(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Printf("websocket upgrade failed: %v", err)
+		return
+	}
+	defer conn.Close()
+
+	_, msg, err := conn.ReadMessage()
+	if err != nil {
+		log.Printf("read source failed: %v", err)
+		return
+	}
+
+	evts, runErr := executor.RunAuto(string(msg), autoTimeout)
+
+	for _, e := range evts {
+		data, err := events.Marshal(e)
+		if err != nil {
+			log.Printf("marshal error: %v", err)
+			continue
+		}
+		if err := conn.WriteMessage(websocket.TextMessage, data); err != nil {
+			break
+		}
+	}
+
+	closeMsg := "done"
+	if runErr != nil {
+		closeMsg = runErr.Error()
+	}
+	conn.WriteMessage(
+		websocket.CloseMessage,
+		websocket.FormatCloseMessage(websocket.CloseNormalClosure, closeMsg),
+	)
+
+	conn.SetReadDeadline(time.Now().Add(time.Second))
+	conn.ReadMessage()
+}
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
