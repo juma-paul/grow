@@ -6,6 +6,9 @@ interface Event {
   [key: string]: unknown;
 }
 
+export type Mode = "presets" | "wrapper" | "auto";
+export type Strategy = "cpython" | "doubling" | "1.5x" | "nogrowth";
+
 export interface ResizeState {
   oldCap: number;
   newCap: number;
@@ -45,6 +48,8 @@ interface EventStore {
   isPlaying: boolean;
   speed: number;
   count: number;
+  mode: Mode;
+  strategy: Strategy;
   addEvents: (events: Event[]) => void;
   stepForward: () => void;
   stepBack: () => void;
@@ -54,6 +59,8 @@ interface EventStore {
   pause: () => void;
   setSpeed: (speed: number) => void;
   setCount: (count: number) => void;
+  setMode: (mode: Mode) => void;
+  setStrategy: (strategy: Strategy) => void;
   reset: () => void;
 }
 
@@ -166,6 +173,8 @@ export const useEventStore = create<EventStore>((set, get) => ({
   isPlaying: false,
   speed: 1,
   count: 20,
+  mode: "presets",
+  strategy: "cpython",
 
   addEvents: (events) => set({ events }),
 
@@ -215,6 +224,8 @@ export const useEventStore = create<EventStore>((set, get) => ({
   pause: () => set({ isPlaying: false }),
   setSpeed: (speed) => set({ speed }),
   setCount: (count) => set({ count }),
+  setMode: (mode) => set({ mode }),
+  setStrategy: (strategy) => set({ strategy }),
 
   reset: () =>
     set({
