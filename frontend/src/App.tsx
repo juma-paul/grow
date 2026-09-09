@@ -2,6 +2,7 @@ import CanvasArray from "./components/CanvasArray";
 import CostGraph from "./components/CostGraph";
 import CodeDrawer from "./components/CodeDrawer";
 import PresetsPanel from "./components/PresetsPanel";
+import WrapperPanel from "./components/WrapperPanel";
 import Rail from "./components/Rail";
 import { useEventStore } from "./store";
 import { usePlayback } from "./hooks/usePlayback";
@@ -74,11 +75,7 @@ function App() {
       <main className="flex flex-col min-h-0 overflow-hidden">
         {/* Tab content */}
         {mode === "presets" && <PresetsPanel />}
-        {mode === "wrapper" && (
-          <div className="border-b border-zinc-800 px-4 py-3 text-sm text-zinc-500">
-            Wrapper tab — coming soon
-          </div>
-        )}
+        {mode === "wrapper" && <WrapperPanel />}
         {mode === "auto" && (
           <div className="border-b border-zinc-800 px-4 py-3 text-sm text-zinc-500">
             Auto tab — coming soon

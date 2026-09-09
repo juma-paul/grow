@@ -18,8 +18,17 @@ func RunAuto(src string, timeout time.Duration) ([]events.Event, error) {
 	if err != nil {
 		return nil, fmt.Errorf("rewrite: %w", err)
 	}
+	return runPythonSource(rewritten, "<auto>", timeout)
+}
 
-	code, err := py.Compile(rewritten+"\n", "<auto>", py.ExecMode, 0, true)
+// RunWrapper executes user Python that already uses VisualList directly,
+// without AST rewriting.
+func RunWrapper(src string, timeout time.Duration) ([]events.Event, error) {
+	return runPythonSource(src, "<wrapper>", timeout)
+}
+
+func runPythonSource(src, label string, timeout time.Duration) ([]events.Event, error) {
+	code, err := py.Compile(src+"\n", label, py.ExecMode, 0, true)
 	if err != nil {
 		return nil, fmt.Errorf("compile: %w", err)
 	}
@@ -28,7 +37,7 @@ func RunAuto(src string, timeout time.Duration) ([]events.Event, error) {
 	ApplySandbox(ctx)
 
 	module, err := ctx.Store().NewModule(ctx, &py.ModuleImpl{
-		Info: py.ModuleInfo{FileDesc: "<auto>"},
+		Info: py.ModuleInfo{FileDesc: label},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("module: %w", err)

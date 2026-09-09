@@ -31,7 +31,13 @@ func HandleAutoExecute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	evts, runErr := executor.RunAuto(string(msg), autoTimeout)
+	var evts []events.Event
+	var runErr error
+	if r.URL.Query().Get("rewrite") == "false" {
+		evts, runErr = executor.RunWrapper(string(msg), autoTimeout)
+	} else {
+		evts, runErr = executor.RunAuto(string(msg), autoTimeout)
+	}
 
 	for _, e := range evts {
 		data, err := events.Marshal(e)
