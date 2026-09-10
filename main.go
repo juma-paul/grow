@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/juma-paul/grow/internal/server"
 )
 
@@ -15,6 +17,7 @@ func main() {
 		w.Write([]byte("ok\n"))
 	})
 
+	http.Handle("/metrics", promhttp.Handler())
 	http.HandleFunc("/execute", server.HandleExecute)
 	http.HandleFunc("/auto", server.HandleAutoExecute)
 	http.HandleFunc("/observe", server.HandleObserve)

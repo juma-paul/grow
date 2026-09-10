@@ -25,6 +25,8 @@ func HandleAutoExecute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer conn.Close()
+	ActiveConnections.Inc()
+	defer ActiveConnections.Dec()
 
 	rewrite := r.URL.Query().Get("rewrite") != "false"
 	slog.Info("connection opened", "handler", "auto", "rewrite", rewrite)
@@ -35,6 +37,7 @@ func HandleAutoExecute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ExecutionsInFlight.Inc()
 	start := time.Now()
 	var evts []events.Event
 	var runErr error
@@ -44,8 +47,14 @@ func HandleAutoExecute(w http.ResponseWriter, r *http.Request) {
 		evts, runErr = executor.RunAuto(string(msg), autoTimeout)
 	}
 	duration := time.Since(start)
+	ExecutionsInFlight.Dec()
+	ExecutionDuration.WithLabelValues("auto").Observe(duration.Seconds())
 
 	evts, coalesced := CoalesceEvents(evts)
+	EventsEmitted.WithLabelValues("auto").Add(float64(len(evts)))
+	if coalesced > 0 {
+		EventsCoalesced.Add(float64(coalesced))
+	}
 
 	slog.Info("execution complete",
 		"handler", "auto",
@@ -95,6 +104,8 @@ func HandleObserve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer conn.Close()
+	ActiveConnections.Inc()
+	defer ActiveConnections.Dec()
 
 	slog.Info("connection opened", "handler", "observe")
 
@@ -104,13 +115,20 @@ func HandleObserve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ExecutionsInFlight.Inc()
 	start := time.Now()
 	script := executor.InstrumentForObserve(string(msg))
 	snaps, runErr := executor.RunCPython(script, observeTimeout)
 	duration := time.Since(start)
+	ExecutionsInFlight.Dec()
+	ExecutionDuration.WithLabelValues("observe").Observe(duration.Seconds())
 
 	evts := executor.DiffSnapshots(snaps)
 	evts, coalesced := CoalesceEvents(evts)
+	EventsEmitted.WithLabelValues("observe").Add(float64(len(evts)))
+	if coalesced > 0 {
+		EventsCoalesced.Add(float64(coalesced))
+	}
 
 	slog.Info("execution complete",
 		"handler", "observe",
@@ -180,6 +198,8 @@ func HandleExecute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer conn.Close()
+	ActiveConnections.Inc()
+	defer ActiveConnections.Dec()
 
 	slog.Info("connection opened",
 		"handler", "execute",
@@ -187,6 +207,7 @@ func HandleExecute(w http.ResponseWriter, r *http.Request) {
 		"strategy", strategyName,
 	)
 
+	ExecutionsInFlight.Inc()
 	start := time.Now()
 	stream := NewEventStream()
 	var wg sync.WaitGroup
@@ -222,11 +243,15 @@ func HandleExecute(w http.ResponseWriter, r *http.Request) {
 	stream.Close()
 	wg.Wait()
 
+	duration := time.Since(start)
+	ExecutionsInFlight.Dec()
+	ExecutionDuration.WithLabelValues("execute").Observe(duration.Seconds())
+
 	slog.Info("execution complete",
 		"handler", "execute",
 		"count", count,
 		"strategy", strategyName,
-		"duration", time.Since(start),
+		"duration", duration,
 	)
 
 	conn.WriteMessage(
