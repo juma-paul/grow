@@ -10,4 +10,5 @@ require (
 	github.com/peterh/liner v1.2.2 // indirect
 	github.com/rivo/uniseg v0.3.4 // indirect
 	golang.org/x/sys v0.0.0-20220817070843-5a390386f1f2 // indirect
+	pgregory.net/rapid v1.3.0 // indirect
 )
