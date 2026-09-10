@@ -13,19 +13,23 @@ export default function AutoPanel() {
   const { connectCode } = useEventStream();
 
   return (
-    <div className="flex flex-col border-b border-zinc-800">
-      <div className="flex items-center gap-2 px-4 py-2">
-        <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-          Auto
+    <div className="h-full flex flex-col">
+      <div className="flex items-center gap-2 px-4 py-1.5 border-b border-[#1e2430] shrink-0">
+        <span className="flex items-center gap-1.5 text-[11px] font-medium text-[#8b90a0]">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400" />
+          auto.py
         </span>
         <button
           onClick={() => connectCode(source, true)}
-          className="ml-auto rounded bg-emerald-600 px-3 py-1 text-sm font-medium hover:bg-emerald-500"
+          className="ml-auto flex items-center gap-1.5 rounded-md bg-emerald-400 px-3 py-1 text-[12px] font-semibold text-[#0f1117] hover:opacity-90"
         >
+          <svg width="8" height="10" viewBox="0 0 10 12" fill="none">
+            <path d="M0 0L10 6L0 12V0Z" fill="currentColor" />
+          </svg>
           Run
         </button>
       </div>
-      <div className="h-48">
+      <div className="flex-1 min-h-0">
         <Editor
           height="100%"
           defaultLanguage="python"

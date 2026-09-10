@@ -1,6 +1,5 @@
 import { create } from "zustand";
 
-// Mirrors the Go Event interface - every event has a type field
 interface Event {
   type: string;
   [key: string]: unknown;
@@ -25,12 +24,18 @@ export interface RetiringState {
   length: number;
 }
 
-// One entry per append operation — cost = 1 for normal, 1+N for resize
 interface CostEntry {
   op: number;
   cost: number;
   isResize: boolean;
   amortized: number;
+}
+
+export interface LastResize {
+  oldCap: number;
+  newCap: number;
+  needed: number;
+  appendNum: number;
 }
 
 interface EventStore {
@@ -44,6 +49,8 @@ interface EventStore {
   costs: CostEntry[];
   pendingResizeCost: number;
   totalCost: number;
+  resizeCount: number;
+  lastResize: LastResize | null;
   instantSeek: boolean;
   isPlaying: boolean;
   speed: number;
@@ -59,7 +66,6 @@ interface EventStore {
   pause: () => void;
   setSpeed: (speed: number) => void;
   setCount: (count: number) => void;
-  focusedRef: string | null;
   setMode: (mode: Mode) => void;
   setStrategy: (strategy: Strategy) => void;
   reset: () => void;
@@ -75,6 +81,8 @@ function applyEvent(
     costs: CostEntry[];
     pendingResizeCost: number;
     totalCost: number;
+    resizeCount: number;
+    lastResize: LastResize | null;
   },
   event: Event,
 ) {
@@ -85,22 +93,28 @@ function applyEvent(
   let costs = state.costs;
   let pendingResizeCost = state.pendingResizeCost;
   let totalCost = state.totalCost;
+  let resizeCount = state.resizeCount;
+  let lastResize = state.lastResize;
 
   if (event.type === "append_begin") {
     length = (event.length as number) + 1;
   }
 
   if (event.type === "resize_begin" || event.type === "shrink_begin") {
-    // If a previous resize is still retiring, commit it now
     if (retiring) {
       pastArrays = [...pastArrays, retiring];
       retiring = null;
     }
-    capacity = event.new_cap as number;
-    resize = {
-      oldCap: event.old_cap as number,
-      newCap: event.new_cap as number,
-      copied: [],
+    const oldCap = event.old_cap as number;
+    const newCap = event.new_cap as number;
+    capacity = newCap;
+    resize = { oldCap, newCap, copied: [] };
+    resizeCount++;
+    lastResize = {
+      oldCap,
+      newCap,
+      needed: oldCap + 1,
+      appendNum: costs.length + 1,
     };
   }
 
@@ -109,8 +123,6 @@ function applyEvent(
   }
 
   if (event.type === "resize_end" || event.type === "shrink_end") {
-    // Phase 1: move to retiring (amber → gray fade happens here)
-    // Phase 2: commitRetiring() collapses and adds to pastArrays
     if (resize) {
       retiring = { capacity: resize.oldCap, length: resize.copied.length };
     }
@@ -134,7 +146,7 @@ function applyEvent(
     pendingResizeCost = 0;
   }
 
-  return { length, capacity, resize, retiring, pastArrays, costs, pendingResizeCost, totalCost };
+  return { length, capacity, resize, retiring, pastArrays, costs, pendingResizeCost, totalCost, resizeCount, lastResize };
 }
 
 function freshState() {
@@ -147,6 +159,8 @@ function freshState() {
     costs: [] as CostEntry[],
     pendingResizeCost: 0,
     totalCost: 0,
+    resizeCount: 0,
+    lastResize: null as LastResize | null,
   };
 }
 
@@ -155,7 +169,6 @@ function replayTo(events: Event[], targetIndex: number) {
   for (let i = 0; i <= targetIndex; i++) {
     state = applyEvent(state, events[i]);
   }
-  // Instant replay has no animation — fold retiring into pastArrays immediately
   if (state.retiring) {
     state = {
       ...state,
@@ -176,7 +189,6 @@ export const useEventStore = create<EventStore>((set, get) => ({
   count: 20,
   mode: "presets",
   strategy: "cpython",
-  focusedRef: null,
 
   addEvents: (events) => set({ events }),
 
@@ -188,8 +200,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
       return;
     }
     const updated = applyEvent(get(), events[next]);
-    const ref = (events[next].source_ref as string) || null;
-    set({ currentIndex: next, instantSeek: false, focusedRef: ref, ...updated });
+    set({ currentIndex: next, instantSeek: false, ...updated });
   },
 
   stepBack: () => {
@@ -197,25 +208,22 @@ export const useEventStore = create<EventStore>((set, get) => ({
     if (currentIndex < 0) return;
     const target = currentIndex - 1;
     if (target < 0) {
-      set({ currentIndex: -1, ...freshState(), instantSeek: true, isPlaying: false, focusedRef: null });
+      set({ currentIndex: -1, ...freshState(), instantSeek: true, isPlaying: false });
       return;
     }
-    const ref = (events[target].source_ref as string) || null;
-    set({ currentIndex: target, instantSeek: true, focusedRef: ref, ...replayTo(events, target) });
+    set({ currentIndex: target, instantSeek: true, ...replayTo(events, target) });
   },
 
   seekTo: (index: number) => {
     const { events } = get();
     if (index < 0) {
-      set({ currentIndex: -1, ...freshState(), instantSeek: true, isPlaying: false, focusedRef: null });
+      set({ currentIndex: -1, ...freshState(), instantSeek: true, isPlaying: false });
       return;
     }
     const clamped = Math.min(index, events.length - 1);
-    const ref = (events[clamped].source_ref as string) || null;
-    set({ currentIndex: clamped, instantSeek: true, focusedRef: ref, ...replayTo(events, clamped) });
+    set({ currentIndex: clamped, instantSeek: true, ...replayTo(events, clamped) });
   },
 
-  // Called after the amber→gray fade completes (~800ms after resize_end)
   commitRetiring: () => {
     const { retiring, pastArrays } = get();
     if (!retiring) return;
@@ -238,6 +246,5 @@ export const useEventStore = create<EventStore>((set, get) => ({
       currentIndex: -1,
       ...freshState(),
       isPlaying: false,
-      focusedRef: null,
     }),
 }));
