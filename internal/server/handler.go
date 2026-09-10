@@ -63,6 +63,54 @@ func HandleAutoExecute(w http.ResponseWriter, r *http.Request) {
 	conn.ReadMessage()
 }
 
+const observeTimeout = 10 * time.Second
+
+// HandleObserve upgrades to WebSocket, reads user Python source,
+// instruments it with _snap() calls, runs it under real CPython,
+// diffs the snapshots into events, and streams them back.
+func HandleObserve(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Printf("websocket upgrade failed: %v", err)
+		return
+	}
+	defer conn.Close()
+
+	_, msg, err := conn.ReadMessage()
+	if err != nil {
+		log.Printf("read source failed: %v", err)
+		return
+	}
+
+	script := executor.InstrumentForObserve(string(msg))
+	snaps, runErr := executor.RunCPython(script, observeTimeout)
+
+	evts := executor.DiffSnapshots(snaps)
+
+	for _, e := range evts {
+		data, err := events.Marshal(e)
+		if err != nil {
+			log.Printf("marshal error: %v", err)
+			continue
+		}
+		if err := conn.WriteMessage(websocket.TextMessage, data); err != nil {
+			break
+		}
+	}
+
+	closeMsg := "done"
+	if runErr != nil {
+		closeMsg = runErr.Error()
+	}
+	conn.WriteMessage(
+		websocket.CloseMessage,
+		websocket.FormatCloseMessage(websocket.CloseNormalClosure, closeMsg),
+	)
+
+	conn.SetReadDeadline(time.Now().Add(time.Second))
+	conn.ReadMessage()
+}
+
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }

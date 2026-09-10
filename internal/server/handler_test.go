@@ -105,6 +105,46 @@ func TestExecuteNoGrowthOverflow(t *testing.T) {
 	}
 }
 
+func TestObserveEndpoint(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(HandleObserve))
+	defer srv.Close()
+
+	url := "ws" + strings.TrimPrefix(srv.URL, "http") + "/observe"
+	ws, _, err := websocket.DefaultDialer.Dial(url, nil)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	defer ws.Close()
+
+	source := "lst = []\nfor i in range(5):\n    lst.append(i)\n"
+	if err := ws.WriteMessage(websocket.TextMessage, []byte(source)); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	events := readAllEvents(t, ws)
+	if len(events) == 0 {
+		t.Fatal("no events from observe")
+	}
+
+	appendEnds := 0
+	resizeBegins := 0
+	for _, e := range events {
+		switch e["type"] {
+		case "append_end":
+			appendEnds++
+		case "resize_begin":
+			resizeBegins++
+		}
+	}
+
+	if appendEnds != 5 {
+		t.Errorf("observe: append_end count = %d, want 5", appendEnds)
+	}
+	if resizeBegins != 2 {
+		t.Errorf("observe: resize_begin count = %d, want 2", resizeBegins)
+	}
+}
+
 func TestExecuteUnknownStrategy(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(HandleExecute))
 	defer srv.Close()
