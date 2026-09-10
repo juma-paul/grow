@@ -45,12 +45,12 @@ export default function CodeDrawer() {
   return (
     <div className="flex-shrink-0">
       {/* Toggle + drag bar */}
-      <div className="flex items-center border-t border-zinc-700 bg-zinc-800">
+      <div className="flex items-center border-t border-[var(--border)] bg-[var(--surface-1)]">
         <button
           onClick={() => setIsOpen(!isOpen)}
           aria-expanded={isOpen}
           aria-label="Toggle code editor"
-          className="flex items-center gap-2 px-4 py-1.5 text-sm text-zinc-400 hover:text-white transition-colors cursor-pointer"
+          className="flex items-center gap-2 px-4 py-1.5 text-sm text-[var(--text-2)] hover:text-[var(--text-0)] transition-colors cursor-pointer"
         >
           <span
             className={`transition-transform duration-200 text-xs ${isOpen ? "rotate-180" : ""}`}
@@ -65,7 +65,7 @@ export default function CodeDrawer() {
             onMouseDown={onMouseDown}
             className="flex-1 h-full cursor-row-resize flex items-center justify-center"
           >
-            <div className="w-12 h-1 rounded-full bg-zinc-600 hover:bg-emerald-500 transition-colors" />
+            <div className="w-12 h-1 rounded-full bg-[var(--border)] hover:bg-emerald-500 transition-colors" />
           </div>
         )}
       </div>

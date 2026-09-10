@@ -11,6 +11,7 @@ import ShortcutsOverlay from "./components/ShortcutsOverlay";
 import { useEventStore } from "./store";
 import { usePlayback } from "./hooks/usePlayback";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
+import { useTheme } from "./hooks/useTheme";
 
 const SPEEDS = [0.5, 1, 2, 5];
 
@@ -31,13 +32,13 @@ function TransportBar() {
 
   return (
     <>
-      <div className="flex items-center gap-3 border-b border-[#262d3d] px-4 py-2 bg-[#171b24] shrink-0">
+      <div className="flex items-center gap-3 border-b border-[var(--border)] px-4 py-2 bg-[var(--surface-1)] shrink-0">
         <div className="flex items-center gap-1">
           <button
             onClick={stepBack}
             disabled={atStart}
             aria-label="Step back"
-            className="rounded px-2 py-1 text-sm font-medium hover:bg-[#1e2330] disabled:opacity-30 disabled:cursor-not-allowed"
+            className="rounded px-2 py-1 text-sm font-medium hover:bg-[var(--surface-2)] disabled:opacity-30 disabled:cursor-not-allowed"
           >
             ⏮
           </button>
@@ -45,7 +46,7 @@ function TransportBar() {
             onClick={isPlaying ? pause : play}
             disabled={atEnd && !isPlaying}
             aria-label={isPlaying ? "Pause" : "Play"}
-            className="rounded px-2 py-1 text-sm font-medium hover:bg-[#1e2330] disabled:opacity-30 disabled:cursor-not-allowed"
+            className="rounded px-2 py-1 text-sm font-medium hover:bg-[var(--surface-2)] disabled:opacity-30 disabled:cursor-not-allowed"
           >
             {isPlaying ? "⏸" : "▶"}
           </button>
@@ -53,12 +54,12 @@ function TransportBar() {
             onClick={stepForward}
             disabled={atEnd}
             aria-label="Step forward"
-            className="rounded px-2 py-1 text-sm font-medium hover:bg-[#1e2330] disabled:opacity-30 disabled:cursor-not-allowed"
+            className="rounded px-2 py-1 text-sm font-medium hover:bg-[var(--surface-2)] disabled:opacity-30 disabled:cursor-not-allowed"
           >
             ⏭
           </button>
         </div>
-        <div className="flex items-center gap-0.5 bg-[#1e2330] rounded-md p-0.5">
+        <div className="flex items-center gap-0.5 bg-[var(--surface-2)] rounded-md p-0.5">
           {SPEEDS.map((s) => (
             <button
               key={s}
@@ -67,20 +68,20 @@ function TransportBar() {
               aria-pressed={speed === s}
               className={`rounded px-2 py-1 text-[10px] font-medium font-[var(--font-mono)] ${
                 speed === s
-                  ? "bg-[#252b3a] text-[#e2e4ea]"
-                  : "text-[#565b6b] hover:text-[#8b90a0]"
+                  ? "bg-[var(--surface-3)] text-[var(--text-0)]"
+                  : "text-[var(--text-2)] hover:text-[var(--text-1)]"
               }`}
             >
               {s}×
             </button>
           ))}
         </div>
-        <span className="ml-auto font-[var(--font-mono)] text-[10px] tabular-nums text-[#565b6b]">
+        <span className="ml-auto font-[var(--font-mono)] text-[10px] tabular-nums text-[var(--text-2)]">
           event {currentIndex + 1}/{totalEvents}
         </span>
       </div>
 
-      <div className="flex items-center gap-3 border-b border-[#1e2430] px-4 py-1.5 shrink-0">
+      <div className="flex items-center gap-3 border-b border-[var(--border-light)] px-4 py-1.5 shrink-0">
         <input
           type="range"
           min={-1}
@@ -88,9 +89,9 @@ function TransportBar() {
           value={currentIndex}
           onChange={(e) => seekTo(Number(e.target.value))}
           aria-label="Event scrubber"
-          className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-[#252b3a] accent-emerald-500 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-400"
+          className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-[var(--surface-3)] accent-emerald-500 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-400"
         />
-        <span className="shrink-0 font-[var(--font-mono)] text-[10px] tabular-nums text-[#565b6b]">
+        <span className="shrink-0 font-[var(--font-mono)] text-[10px] tabular-nums text-[var(--text-2)]">
           {currentIndex + 1} / {totalEvents}
         </span>
       </div>
@@ -112,6 +113,7 @@ function App() {
   const lastResize = useEventStore((s) => s.lastResize);
   usePlayback();
   const { showHelp, setShowHelp } = useKeyboardShortcuts();
+  const { theme, toggle: toggleTheme } = useTheme();
 
   const hasEvents = totalEvents > 0;
   const showExplanation = !!lastResize;
@@ -119,16 +121,16 @@ function App() {
 
   return (
     <div
-      className={`grid h-screen grid-cols-1 bg-[#0f1117] text-[#e2e4ea] ${
+      className={`grid h-screen grid-cols-1 bg-[var(--surface-0)] text-[var(--text-0)] ${
         showExplanation
           ? "md:grid-cols-[220px_1fr_320px]"
           : "md:grid-cols-[220px_1fr]"
       }`}
     >
-      <Rail onShowHelp={() => setShowHelp(true)} />
+      <Rail onShowHelp={() => setShowHelp(true)} theme={theme} onToggleTheme={toggleTheme} />
 
       {/* Mobile header */}
-      <div className="flex md:hidden items-center gap-3 border-b border-[#262d3d] px-4 py-2">
+      <div className="flex md:hidden items-center gap-3 border-b border-[var(--border)] px-4 py-2">
         <span className="text-lg font-bold tracking-tight">grow</span>
         <div className="flex gap-1">
           {(["presets", "wrapper", "auto"] as const).map((m) => (
@@ -139,7 +141,7 @@ function App() {
               className={`rounded px-2 py-0.5 text-xs font-medium ${
                 mode === m
                   ? "bg-emerald-400/[.12] text-emerald-400"
-                  : "text-[#565b6b]"
+                  : "text-[var(--text-2)]"
               }`}
             >
               {m[0].toUpperCase()}
@@ -150,7 +152,7 @@ function App() {
           value={strategy}
           onChange={(e) => setStrategy(e.target.value as typeof strategy)}
           aria-label="Growth strategy"
-          className="ml-auto rounded bg-[#1e2330] border border-[#262d3d] px-1 py-0.5 text-xs"
+          className="ml-auto rounded bg-[var(--surface-2)] border border-[var(--border)] px-1 py-0.5 text-xs"
         >
           <option value="cpython">CPython</option>
           <option value="doubling">Doubling</option>
@@ -160,7 +162,7 @@ function App() {
       </div>
 
       {/* Center stage */}
-      <main className="relative flex flex-col min-h-0 overflow-hidden bg-[#0f1117]">
+      <main className="relative flex flex-col min-h-0 overflow-hidden bg-[var(--surface-0)]">
         {mode === "presets" && <Onboarding />}
         {showHelp && <ShortcutsOverlay onClose={() => setShowHelp(false)} />}
         {/* Presets mode: buttons at top, then transport, viz, graph */}
@@ -195,7 +197,7 @@ function App() {
             </div>
             {hasEvents && <TransportBar />}
             <BottomDock
-              codeContent={mode === "wrapper" ? <WrapperPanel /> : <AutoPanel />}
+              codeContent={mode === "wrapper" ? <WrapperPanel theme={theme} /> : <AutoPanel theme={theme} />}
               graphContent={<CostGraph />}
             />
           </>

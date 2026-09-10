@@ -16,24 +16,24 @@ export default function ShortcutsOverlay({
       onClick={onClose}
     >
       <div
-        className="rounded-xl border border-[#262d3d] bg-[#171b24] px-6 py-5 shadow-2xl max-w-xs w-full"
+        className="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] px-6 py-5 shadow-2xl max-w-xs w-full"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="text-[13px] font-semibold text-[#e2e4ea] mb-4">
+        <div className="text-[13px] font-semibold text-[var(--text-0)] mb-4">
           Keyboard shortcuts
         </div>
         <div className="flex flex-col gap-2.5">
           {SHORTCUTS.map((s) => (
             <div key={s.key} className="flex items-center justify-between">
-              <span className="text-[12px] text-[#8b90a0]">{s.action}</span>
-              <kbd className="rounded bg-[#252b3a] border border-[#262d3d] px-2 py-0.5 font-[var(--font-mono)] text-[11px] text-[#e2e4ea]">
+              <span className="text-[12px] text-[var(--text-1)]">{s.action}</span>
+              <kbd className="rounded bg-[var(--surface-3)] border border-[var(--border)] px-2 py-0.5 font-[var(--font-mono)] text-[11px] text-[var(--text-0)]">
                 {s.key}
               </kbd>
             </div>
           ))}
         </div>
-        <div className="mt-4 text-center text-[10px] text-[#565b6b]">
-          Press <kbd className="rounded bg-[#252b3a] border border-[#262d3d] px-1 py-px font-[var(--font-mono)] text-[10px]">?</kbd> or click outside to close
+        <div className="mt-4 text-center text-[10px] text-[var(--text-2)]">
+          Press <kbd className="rounded bg-[var(--surface-3)] border border-[var(--border)] px-1 py-px font-[var(--font-mono)] text-[10px]">?</kbd> or click outside to close
         </div>
       </div>
     </div>

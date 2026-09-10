@@ -14,7 +14,15 @@ const STRATEGIES: { key: Strategy; label: string; subtitle: string }[] = [
   { key: "nogrowth", label: "No growth", subtitle: "fixed" },
 ];
 
-export default function Rail({ onShowHelp }: { onShowHelp?: () => void }) {
+export default function Rail({
+  onShowHelp,
+  theme,
+  onToggleTheme,
+}: {
+  onShowHelp?: () => void;
+  theme?: "dark" | "light";
+  onToggleTheme?: () => void;
+}) {
   const mode = useEventStore((s) => s.mode);
   const setMode = useEventStore((s) => s.setMode);
   const strategy = useEventStore((s) => s.strategy);
@@ -28,23 +36,23 @@ export default function Rail({ onShowHelp }: { onShowHelp?: () => void }) {
     costs.length > 0 ? costs[costs.length - 1].amortized : 0;
 
   return (
-    <aside className="hidden md:flex flex-col bg-[#171b24] border-r border-[#262d3d] overflow-y-auto">
+    <aside className="hidden md:flex flex-col bg-[var(--surface-1)] border-r border-[var(--border)] overflow-y-auto">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e2430]">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-light)]">
         <div className="flex items-center gap-2">
           <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.25)]" />
           <span className="font-[var(--font-mono)] text-xl font-semibold tracking-tight text-emerald-400">
             grow
           </span>
         </div>
-        <span className="text-[11px] text-[#565b6b] cursor-pointer hover:text-[#8b90a0]">
+        <span className="text-[11px] text-[var(--text-2)] cursor-pointer hover:text-[var(--text-1)]">
           Home
         </span>
       </div>
 
       {/* Mode */}
       <div className="px-3 pt-4 pb-2">
-        <div className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[1px] text-[#565b6b]">
+        <div className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[1px] text-[var(--text-2)]">
           Mode
         </div>
         <div className="flex flex-col gap-0.5">
@@ -56,14 +64,14 @@ export default function Rail({ onShowHelp }: { onShowHelp?: () => void }) {
               className={`flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors text-left w-full ${
                 mode === m.key
                   ? "bg-emerald-400/[.12] text-emerald-400"
-                  : "text-[#8b90a0] hover:bg-[#1e2330] hover:text-[#e2e4ea]"
+                  : "text-[var(--text-1)] hover:bg-[var(--surface-2)] hover:text-[var(--text-0)]"
               }`}
             >
               <span
                 className={`flex items-center justify-center w-[18px] h-[18px] rounded text-[11px] font-semibold font-[var(--font-mono)] ${
                   mode === m.key
                     ? "bg-emerald-400/25 text-emerald-400"
-                    : "bg-[#252b3a] text-[#565b6b]"
+                    : "bg-[var(--surface-3)] text-[var(--text-2)]"
                 }`}
               >
                 {m.letter}
@@ -75,8 +83,8 @@ export default function Rail({ onShowHelp }: { onShowHelp?: () => void }) {
       </div>
 
       {/* Growth Strategy */}
-      <div className="px-3 py-4 border-t border-[#1e2430]">
-        <div className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[1px] text-[#565b6b]">
+      <div className="px-3 py-4 border-t border-[var(--border-light)]">
+        <div className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[1px] text-[var(--text-2)]">
           Growth Strategy
         </div>
         <div className="grid grid-cols-2 gap-1.5">
@@ -88,13 +96,13 @@ export default function Rail({ onShowHelp }: { onShowHelp?: () => void }) {
               className={`flex flex-col items-center rounded-md px-2 py-[7px] text-center transition-colors border ${
                 strategy === s.key
                   ? "border-emerald-400 bg-emerald-400/[.12] text-emerald-400"
-                  : "border-[#262d3d] bg-[#1e2330] text-[#8b90a0] hover:border-[#565b6b] hover:text-[#e2e4ea]"
+                  : "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-1)] hover:border-[var(--text-2)] hover:text-[var(--text-0)]"
               }`}
             >
               <span className="font-[var(--font-mono)] text-[10px] font-medium">
                 {s.label}
               </span>
-              <span className="text-[10px] text-[#565b6b] mt-0.5">
+              <span className="text-[10px] text-[var(--text-2)] mt-0.5">
                 {s.subtitle}
               </span>
             </button>
@@ -103,45 +111,54 @@ export default function Rail({ onShowHelp }: { onShowHelp?: () => void }) {
       </div>
 
       {/* Stats */}
-      <div className="mt-auto flex flex-col gap-2.5 px-5 py-4 border-t border-[#1e2430]">
+      <div className="mt-auto flex flex-col gap-2.5 px-5 py-4 border-t border-[var(--border-light)]">
         <div className="flex justify-between items-baseline">
-          <span className="text-[11px] text-[#565b6b]">Length</span>
+          <span className="text-[11px] text-[var(--text-2)]">Length</span>
           <span className="font-[var(--font-mono)] text-[13px] font-medium tabular-nums text-emerald-400">
             {length}
           </span>
         </div>
         <div className="flex justify-between items-baseline">
-          <span className="text-[11px] text-[#565b6b]">Capacity</span>
-          <span className="font-[var(--font-mono)] text-[13px] font-medium tabular-nums text-[#e2e4ea]">
+          <span className="text-[11px] text-[var(--text-2)]">Capacity</span>
+          <span className="font-[var(--font-mono)] text-[13px] font-medium tabular-nums text-[var(--text-0)]">
             {capacity}
           </span>
         </div>
         <div className="flex justify-between items-baseline">
-          <span className="text-[11px] text-[#565b6b]">Resizes</span>
+          <span className="text-[11px] text-[var(--text-2)]">Resizes</span>
           <span className="font-[var(--font-mono)] text-[13px] font-medium tabular-nums text-amber-500">
             {resizeCount}
           </span>
         </div>
         <div className="flex justify-between items-baseline">
-          <span className="text-[11px] text-[#565b6b]">Amortized</span>
+          <span className="text-[11px] text-[var(--text-2)]">Amortized</span>
           <span className="font-[var(--font-mono)] text-[13px] font-medium tabular-nums text-violet-400">
             {amortized.toFixed(2)}
           </span>
         </div>
       </div>
 
-      {/* Help */}
-      {onShowHelp && (
-        <div className="px-5 pb-4">
+      {/* Footer actions */}
+      <div className="flex items-center gap-2 px-5 pb-4">
+        {onToggleTheme && (
+          <button
+            onClick={onToggleTheme}
+            className="flex items-center justify-center w-6 h-6 rounded border border-[var(--border)] bg-[var(--surface-2)] text-[11px] text-[var(--text-2)] hover:text-[var(--text-1)] hover:border-[var(--text-2)] transition-colors"
+            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+          >
+            {theme === "dark" ? "☀" : "☾"}
+          </button>
+        )}
+        {onShowHelp && (
           <button
             onClick={onShowHelp}
-            className="flex items-center justify-center w-6 h-6 rounded border border-[#262d3d] bg-[#1e2330] text-[11px] font-[var(--font-mono)] text-[#565b6b] hover:text-[#8b90a0] hover:border-[#565b6b] transition-colors"
+            className="flex items-center justify-center w-6 h-6 rounded border border-[var(--border)] bg-[var(--surface-2)] text-[11px] font-[var(--font-mono)] text-[var(--text-2)] hover:text-[var(--text-1)] hover:border-[var(--text-2)] transition-colors"
             aria-label="Keyboard shortcuts"
           >
             ?
           </button>
-        </div>
-      )}
+        )}
+      </div>
     </aside>
   );
 }

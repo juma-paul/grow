@@ -8,14 +8,14 @@ for i in range(20):
     lst.append(i)
 `;
 
-export default function WrapperPanel() {
+export default function WrapperPanel({ theme }: { theme?: "dark" | "light" }) {
   const [source, setSource] = useState(DEFAULT_CODE);
   const { connectCode } = useEventStream();
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center gap-2 px-4 py-1.5 border-b border-[#1e2430] shrink-0">
-        <span className="flex items-center gap-1.5 text-[11px] font-medium text-[#8b90a0]">
+      <div className="flex items-center gap-2 px-4 py-1.5 border-b border-[var(--border-light)] shrink-0">
+        <span className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--text-1)]">
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400" />
           wrapper.py
         </span>
@@ -35,7 +35,7 @@ export default function WrapperPanel() {
           defaultLanguage="python"
           value={source}
           onChange={(v) => setSource(v ?? "")}
-          theme="vs-dark"
+          theme={theme === "light" ? "light" : "vs-dark"}
           options={{
             minimap: { enabled: false },
             fontSize: 13,

@@ -9,7 +9,7 @@ export default function PresetsPanel() {
   const { connect } = useEventStream();
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-zinc-800 px-4 py-3">
+    <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] px-4 py-3">
       {SCENARIOS.map((n) => (
         <button
           key={n}
@@ -21,7 +21,7 @@ export default function PresetsPanel() {
           className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
             count === n
               ? "bg-emerald-600 text-white"
-              : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+              : "bg-[var(--surface-2)] text-[var(--text-1)] hover:bg-[var(--surface-3)]"
           }`}
         >
           Append {n}

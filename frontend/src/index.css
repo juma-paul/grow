@@ -3,6 +3,28 @@
 :root {
   --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', monospace;
+
+  --surface-0: #0f1117;
+  --surface-1: #171b24;
+  --surface-2: #1e2330;
+  --surface-3: #252b3a;
+  --border: #262d3d;
+  --border-light: #1e2430;
+  --text-0: #e2e4ea;
+  --text-1: #8b90a0;
+  --text-2: #565b6b;
+}
+
+[data-theme="light"] {
+  --surface-0: #f5f6f8;
+  --surface-1: #ffffff;
+  --surface-2: #f0f1f4;
+  --surface-3: #e5e7ec;
+  --border: #d1d5db;
+  --border-light: #e5e7eb;
+  --text-0: #1a1d24;
+  --text-1: #6b7280;
+  --text-2: #9ca3af;
 }
 
 body {

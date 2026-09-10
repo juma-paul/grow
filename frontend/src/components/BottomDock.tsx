@@ -90,7 +90,7 @@ export default function BottomDock({ codeContent, graphContent }: BottomDockProp
 
   return (
     <div
-      className="flex flex-col border-t border-[#262d3d] bg-[#171b24] shrink-0 select-none"
+      className="flex flex-col border-t border-[var(--border)] bg-[var(--surface-1)] shrink-0 select-none"
       style={{ height: displayH }}
     >
       {/* Drag handle */}
@@ -99,12 +99,12 @@ export default function BottomDock({ codeContent, graphContent }: BottomDockProp
         onDoubleClick={toggleCollapse}
         className="flex items-center justify-center h-[4px] cursor-row-resize group shrink-0"
       >
-        <div className="w-10 h-[3px] rounded-full bg-[#262d3d] group-hover:bg-[#565b6b] transition-colors" />
+        <div className="w-10 h-[3px] rounded-full bg-[var(--border)] group-hover:bg-[var(--text-2)] transition-colors" />
       </div>
 
       {/* Tab bar */}
       <div
-        className="flex items-center gap-0.5 px-3 border-b border-[#1e2430] shrink-0"
+        className="flex items-center gap-0.5 px-3 border-b border-[var(--border-light)] shrink-0"
         style={{ height: MIN_HEIGHT - 4 }}
       >
         <button
@@ -112,7 +112,7 @@ export default function BottomDock({ codeContent, graphContent }: BottomDockProp
           className={`px-3 py-1 rounded text-[11px] font-medium transition-colors ${
             activeTab === "code" && !collapsed
               ? "bg-emerald-400/[.12] text-emerald-400"
-              : "text-[#565b6b] hover:text-[#8b90a0]"
+              : "text-[var(--text-2)] hover:text-[var(--text-1)]"
           }`}
         >
           Code
@@ -122,7 +122,7 @@ export default function BottomDock({ codeContent, graphContent }: BottomDockProp
           className={`px-3 py-1 rounded text-[11px] font-medium transition-colors ${
             activeTab === "graph" && !collapsed
               ? "bg-emerald-400/[.12] text-emerald-400"
-              : "text-[#565b6b] hover:text-[#8b90a0]"
+              : "text-[var(--text-2)] hover:text-[var(--text-1)]"
           }`}
         >
           Graph
@@ -130,7 +130,7 @@ export default function BottomDock({ codeContent, graphContent }: BottomDockProp
         <button
           onClick={toggleCollapse}
           aria-label={collapsed ? "Expand dock" : "Collapse dock"}
-          className="ml-auto text-[#565b6b] hover:text-[#8b90a0] text-[10px] transition-colors px-1.5 py-0.5 rounded hover:bg-[#1e2330]"
+          className="ml-auto text-[var(--text-2)] hover:text-[var(--text-1)] text-[10px] transition-colors px-1.5 py-0.5 rounded hover:bg-[var(--surface-2)]"
         >
           {collapsed ? "▲" : "▼"}
         </button>

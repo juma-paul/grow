@@ -140,7 +140,7 @@ function PastArrayRow({
   if (noMotion) {
     return (
       <div className="mb-4" style={{ opacity: 0.4 }}>
-        <div className="mb-1 text-xs text-zinc-500">
+        <div className="mb-1 text-xs text-[var(--text-2)]">
           resize #{index + 1} — capacity {arr.capacity}
         </div>
         <div className="flex flex-wrap gap-2">
@@ -169,7 +169,7 @@ function PastArrayRow({
         opacity: { duration: 0.3, ease: smoothEase },
       }}
     >
-      <div className="mb-1 text-xs text-zinc-500">
+      <div className="mb-1 text-xs text-[var(--text-2)]">
         resize #{index + 1} — capacity {arr.capacity}
       </div>
       <div className="flex flex-wrap gap-2">

@@ -11,14 +11,24 @@ import {
 } from "recharts";
 import { useEventStore } from "../store";
 
+function cssVar(name: string): string {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
 export default function CostGraph() {
   const costs = useEventStore((s) => s.costs);
 
   if (costs.length === 0) return null;
 
+  const surface1 = cssVar("--surface-1");
+  const border = cssVar("--border");
+  const text0 = cssVar("--text-0");
+  const text1 = cssVar("--text-1");
+  const text2 = cssVar("--text-2");
+
   return (
-    <div className="shrink-0 border-t border-zinc-700 px-6 py-3">
-      <div className="mb-1 text-sm font-medium text-zinc-400">
+    <div className="shrink-0 border-t border-[var(--border)] px-6 py-3">
+      <div className="mb-1 text-sm font-medium text-[var(--text-1)]">
         Cost per append
       </div>
       <ResponsiveContainer width="100%" height={160}>
@@ -28,38 +38,38 @@ export default function CostGraph() {
         >
           <CartesianGrid
             strokeDasharray="3 3"
-            stroke="rgba(63, 63, 70, 0.5)"
+            stroke={`${border}80`}
             vertical={false}
           />
           <XAxis
             dataKey="op"
-            tick={{ fontSize: 12, fill: "#71717a" }}
+            tick={{ fontSize: 12, fill: text2 }}
             tickLine={false}
-            axisLine={{ stroke: "#3f3f46" }}
+            axisLine={{ stroke: border }}
           />
           <YAxis
-            tick={{ fontSize: 12, fill: "#71717a" }}
+            tick={{ fontSize: 12, fill: text2 }}
             tickLine={false}
             axisLine={false}
             allowDecimals
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: "#18181b",
-              border: "1px solid #3f3f46",
+              backgroundColor: surface1,
+              border: `1px solid ${border}`,
               borderRadius: 8,
               fontSize: 13,
-              color: "#e4e4e7",
+              color: text0,
             }}
-            labelStyle={{ color: "#a1a1aa" }}
-            itemStyle={{ color: "#e4e4e7" }}
+            labelStyle={{ color: text1 }}
+            itemStyle={{ color: text0 }}
             labelFormatter={(op) => `Append #${op}`}
             formatter={(value, name, entry) => {
               if (name === "amortized") return [value, "Amortized avg"];
               const payload = entry.payload as { isResize: boolean };
               return [value, payload.isResize ? "Cost (resize)" : "Cost"];
             }}
-            cursor={{ fill: "rgba(63, 63, 70, 0.3)" }}
+            cursor={{ fill: `${border}4D` }}
           />
           <Bar dataKey="cost" radius={[3, 3, 0, 0]} maxBarSize={40}>
             {costs.map((entry, i) => (
