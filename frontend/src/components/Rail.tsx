@@ -1,5 +1,5 @@
 import { useEventStore } from "../store";
-import type { Mode, Strategy } from "../store";
+import type { Mode, Strategy, Backend } from "../store";
 
 const MODES: { key: Mode; letter: string; label: string }[] = [
   { key: "presets", letter: "P", label: "Presets" },
@@ -27,6 +27,8 @@ export default function Rail({
   const setMode = useEventStore((s) => s.setMode);
   const strategy = useEventStore((s) => s.strategy);
   const setStrategy = useEventStore((s) => s.setStrategy);
+  const backend = useEventStore((s) => s.backend);
+  const setBackend = useEventStore((s) => s.setBackend);
   const length = useEventStore((s) => s.length);
   const capacity = useEventStore((s) => s.capacity);
   const resizeCount = useEventStore((s) => s.resizeCount);
@@ -104,6 +106,39 @@ export default function Rail({
               </span>
               <span className="text-[10px] text-[var(--text-2)] mt-0.5">
                 {s.subtitle}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Backend */}
+      <div className="px-3 py-4 border-t border-[var(--border-light)]">
+        <div className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[1px] text-[var(--text-2)]">
+          Backend
+        </div>
+        <div className="grid grid-cols-2 gap-1.5">
+          {(
+            [
+              { key: "simulator" as Backend, label: "Simulator", subtitle: "Go engine" },
+              { key: "cpython" as Backend, label: "CPython", subtitle: "real python3" },
+            ] as const
+          ).map((b) => (
+            <button
+              key={b.key}
+              onClick={() => setBackend(b.key)}
+              aria-pressed={backend === b.key}
+              className={`flex flex-col items-center rounded-md px-2 py-[7px] text-center transition-colors border ${
+                backend === b.key
+                  ? "border-emerald-400 bg-emerald-400/[.12] text-emerald-400"
+                  : "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-1)] hover:border-[var(--text-2)] hover:text-[var(--text-0)]"
+              }`}
+            >
+              <span className="font-[var(--font-mono)] text-[10px] font-medium">
+                {b.label}
+              </span>
+              <span className="text-[10px] text-[var(--text-2)] mt-0.5">
+                {b.subtitle}
               </span>
             </button>
           ))}

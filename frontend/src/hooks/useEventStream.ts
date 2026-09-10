@@ -39,13 +39,20 @@ export function useEventStream() {
     [addEvents, play, reset, count, strategy],
   );
 
+  const backend = useEventStore((state) => state.backend);
+
   const connectCode = useCallback(
     (source: string, rewrite: boolean) => {
       wsRef.current?.close();
       reset();
       const buffer: { type: string; [key: string]: unknown }[] = [];
       const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const endpoint = rewrite ? "auto" : "auto?rewrite=false";
+      let endpoint: string;
+      if (backend === "cpython") {
+        endpoint = "observe";
+      } else {
+        endpoint = rewrite ? "auto" : "auto?rewrite=false";
+      }
       const ws = new WebSocket(
         `${proto}//${window.location.host}/${endpoint}`,
       );
@@ -70,7 +77,7 @@ export function useEventStream() {
         console.error("WebSocket error:", err);
       };
     },
-    [addEvents, play, reset],
+    [addEvents, play, reset, backend],
   );
 
   useEffect(() => {
