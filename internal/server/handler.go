@@ -1,7 +1,7 @@
 package server
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"sync"
@@ -21,29 +21,39 @@ const autoTimeout = 5 * time.Second
 func HandleAutoExecute(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("websocket upgrade failed: %v", err)
+		slog.Error("websocket upgrade failed", "handler", "auto", "error", err)
 		return
 	}
 	defer conn.Close()
 
+	rewrite := r.URL.Query().Get("rewrite") != "false"
+	slog.Info("connection opened", "handler", "auto", "rewrite", rewrite)
+
 	_, msg, err := conn.ReadMessage()
 	if err != nil {
-		log.Printf("read source failed: %v", err)
+		slog.Error("read source failed", "handler", "auto", "error", err)
 		return
 	}
 
+	start := time.Now()
 	var evts []events.Event
 	var runErr error
-	if r.URL.Query().Get("rewrite") == "false" {
+	if !rewrite {
 		evts, runErr = executor.RunWrapper(string(msg), autoTimeout)
 	} else {
 		evts, runErr = executor.RunAuto(string(msg), autoTimeout)
 	}
+	duration := time.Since(start)
 
 	evts, coalesced := CoalesceEvents(evts)
-	if coalesced > 0 {
-		log.Printf("coalesced %d events", coalesced)
-	}
+
+	slog.Info("execution complete",
+		"handler", "auto",
+		"events", len(evts),
+		"coalesced", coalesced,
+		"duration", duration,
+		"error", runErr,
+	)
 
 	stream := NewEventStream()
 	var wg sync.WaitGroup
@@ -81,25 +91,35 @@ const observeTimeout = 10 * time.Second
 func HandleObserve(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("websocket upgrade failed: %v", err)
+		slog.Error("websocket upgrade failed", "handler", "observe", "error", err)
 		return
 	}
 	defer conn.Close()
 
+	slog.Info("connection opened", "handler", "observe")
+
 	_, msg, err := conn.ReadMessage()
 	if err != nil {
-		log.Printf("read source failed: %v", err)
+		slog.Error("read source failed", "handler", "observe", "error", err)
 		return
 	}
 
+	start := time.Now()
 	script := executor.InstrumentForObserve(string(msg))
 	snaps, runErr := executor.RunCPython(script, observeTimeout)
+	duration := time.Since(start)
 
 	evts := executor.DiffSnapshots(snaps)
 	evts, coalesced := CoalesceEvents(evts)
-	if coalesced > 0 {
-		log.Printf("coalesced %d events", coalesced)
-	}
+
+	slog.Info("execution complete",
+		"handler", "observe",
+		"snapshots", len(snaps),
+		"events", len(evts),
+		"coalesced", coalesced,
+		"duration", duration,
+		"error", runErr,
+	)
 
 	stream := NewEventStream()
 	var wg sync.WaitGroup
@@ -156,11 +176,18 @@ func HandleExecute(w http.ResponseWriter, r *http.Request) {
 
 	conn, upgradeErr := upgrader.Upgrade(w, r, nil)
 	if upgradeErr != nil {
-		log.Printf("websocket upgrade failed: %v", upgradeErr)
+		slog.Error("websocket upgrade failed", "handler", "execute", "error", upgradeErr)
 		return
 	}
 	defer conn.Close()
 
+	slog.Info("connection opened",
+		"handler", "execute",
+		"count", count,
+		"strategy", strategyName,
+	)
+
+	start := time.Now()
 	stream := NewEventStream()
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -194,6 +221,13 @@ func HandleExecute(w http.ResponseWriter, r *http.Request) {
 
 	stream.Close()
 	wg.Wait()
+
+	slog.Info("execution complete",
+		"handler", "execute",
+		"count", count,
+		"strategy", strategyName,
+		"duration", time.Since(start),
+	)
 
 	conn.WriteMessage(
 		websocket.CloseMessage,

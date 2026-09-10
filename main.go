@@ -1,16 +1,18 @@
 package main
 
 import (
-	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
 
 	"github.com/juma-paul/grow/internal/server"
 )
 
 func main() {
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "ok")
+		w.Write([]byte("ok\n"))
 	})
 
 	http.HandleFunc("/execute", server.HandleExecute)
@@ -19,6 +21,9 @@ func main() {
 
 	http.Handle("/", server.FrontendHandler())
 
-	log.Println("listening on http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	slog.Info("server starting", "addr", "http://localhost:8080")
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		slog.Error("server failed", "error", err)
+		os.Exit(1)
+	}
 }

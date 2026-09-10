@@ -3,8 +3,9 @@ package server
 import (
 	"embed"
 	"io/fs"
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
 )
 
 //go:embed all:dist
@@ -15,7 +16,8 @@ var frontendFiles embed.FS
 func FrontendHandler() http.Handler {
 	dist, err := fs.Sub(frontendFiles, "dist")
 	if err != nil {
-		log.Fatalf("embedded frontend missing: %v", err)
+		slog.Error("embedded frontend missing", "error", err)
+		os.Exit(1)
 	}
 	return http.FileServer(http.FS(dist))
 }
