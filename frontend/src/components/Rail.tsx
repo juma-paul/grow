@@ -1,5 +1,6 @@
 import { useEventStore } from "../store";
 import type { Mode, Strategy, Backend } from "../store";
+import StatsBand from "./StatsBand";
 
 const MODES: { key: Mode; letter: string; label: string }[] = [
   { key: "presets", letter: "P", label: "Presets" },
@@ -177,6 +178,8 @@ export default function Rail({
           </span>
         </div>
       </div>
+
+      <StatsBand />
 
       {/* Footer actions */}
       <div className="flex items-center gap-2 px-5 pb-4">
