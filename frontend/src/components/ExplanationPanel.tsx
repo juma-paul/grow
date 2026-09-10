@@ -1,4 +1,23 @@
+import { useState, type ReactNode } from "react";
 import { useEventStore } from "../store";
+
+function Tip({ children, label }: { children: ReactNode; label: string }) {
+  const [show, setShow] = useState(false);
+  return (
+    <span
+      className="relative cursor-help border-b border-dashed border-[#565b6b]"
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}
+    >
+      {children}
+      {show && (
+        <span className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 whitespace-nowrap rounded bg-[#252b3a] border border-[#262d3d] px-2 py-1 text-[10px] font-normal text-[#e2e4ea] shadow-lg z-10">
+          {label}
+        </span>
+      )}
+    </span>
+  );
+}
 
 function cpythonCapacity(needed: number): number {
   return (needed + (needed >> 3) + 6) & ~3;
@@ -76,7 +95,8 @@ export default function ExplanationPanel() {
             </div>
             <div className="flex justify-between items-baseline py-1">
               <span className="font-[var(--font-mono)] text-[12px] text-[#8b90a0]">
-                needed &gt;&gt; 3
+                needed{" "}
+                <Tip label="divide by 8">&gt;&gt; 3</Tip>
               </span>
               <span className="font-[var(--font-mono)] text-[13px] font-semibold tabular-nums text-[#e2e4ea]">
                 {shift}
@@ -84,7 +104,8 @@ export default function ExplanationPanel() {
             </div>
             <div className="flex justify-between items-baseline py-1">
               <span className="font-[var(--font-mono)] text-[12px] text-[#8b90a0]">
-                + 6, then &amp; ~3
+                <Tip label="padding constant">+ 6</Tip>, then{" "}
+                <Tip label="round down to multiple of 4">&amp; ~3</Tip>
               </span>
               <span className="font-[var(--font-mono)] text-[13px] font-semibold tabular-nums text-[#e2e4ea]">
                 {raw} → {aligned}
