@@ -8,10 +8,15 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/juma-paul/grow/internal/server"
+	"github.com/juma-paul/grow/internal/stats"
 )
 
 func main() {
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+
+	redisAddr := os.Getenv("REDIS_ADDR")
+	server.Stats = stats.NewRecorder(redisAddr)
+	defer server.Stats.Close()
 
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok\n"))

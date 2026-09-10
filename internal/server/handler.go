@@ -11,6 +11,7 @@ import (
 	"github.com/juma-paul/grow/internal/events"
 	"github.com/juma-paul/grow/internal/executor"
 	"github.com/juma-paul/grow/internal/simulator"
+	"github.com/juma-paul/grow/internal/stats"
 )
 
 const autoTimeout = 5 * time.Second
@@ -63,6 +64,10 @@ func HandleAutoExecute(w http.ResponseWriter, r *http.Request) {
 		"duration", duration,
 		"error", runErr,
 	)
+
+	if Stats != nil {
+		go Stats.RecordExecution("auto", len(evts))
+	}
 
 	stream := NewEventStream()
 	var wg sync.WaitGroup
@@ -139,6 +144,10 @@ func HandleObserve(w http.ResponseWriter, r *http.Request) {
 		"error", runErr,
 	)
 
+	if Stats != nil {
+		go Stats.RecordExecution("observe", len(evts))
+	}
+
 	stream := NewEventStream()
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -169,6 +178,9 @@ func HandleObserve(w http.ResponseWriter, r *http.Request) {
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
+
+// Stats is the usage recorder. Set by main before serving.
+var Stats *stats.Recorder
 
 // HandleExecute upgrades to WebSocket and streams events for an
 // append scenario via EventStream. The simulator runs in a goroutine
@@ -253,6 +265,10 @@ func HandleExecute(w http.ResponseWriter, r *http.Request) {
 		"strategy", strategyName,
 		"duration", duration,
 	)
+
+	if Stats != nil {
+		go Stats.RecordExecution(strategyName, count)
+	}
 
 	conn.WriteMessage(
 		websocket.CloseMessage,
