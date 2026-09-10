@@ -18,6 +18,10 @@ func main() {
 	server.Stats = stats.NewRecorder(redisAddr)
 	defer server.Stats.Close()
 
+	geoDBPath := os.Getenv("GEOIP_DB")
+	server.Geo = stats.NewGeoResolver(geoDBPath)
+	defer server.Geo.Close()
+
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok\n"))
 	})

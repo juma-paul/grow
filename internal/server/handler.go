@@ -29,6 +29,12 @@ func HandleAutoExecute(w http.ResponseWriter, r *http.Request) {
 	ActiveConnections.Inc()
 	defer ActiveConnections.Dec()
 
+	if Geo != nil && Stats != nil {
+		if country := Geo.Country(r); country != "" {
+			go Stats.RecordCountry(country)
+		}
+	}
+
 	rewrite := r.URL.Query().Get("rewrite") != "false"
 	slog.Info("connection opened", "handler", "auto", "rewrite", rewrite)
 
@@ -112,6 +118,12 @@ func HandleObserve(w http.ResponseWriter, r *http.Request) {
 	ActiveConnections.Inc()
 	defer ActiveConnections.Dec()
 
+	if Geo != nil && Stats != nil {
+		if country := Geo.Country(r); country != "" {
+			go Stats.RecordCountry(country)
+		}
+	}
+
 	slog.Info("connection opened", "handler", "observe")
 
 	_, msg, err := conn.ReadMessage()
@@ -182,6 +194,9 @@ var upgrader = websocket.Upgrader{
 // Stats is the usage recorder. Set by main before serving.
 var Stats *stats.Recorder
 
+// Geo resolves request IPs to country codes. Set by main before serving.
+var Geo *stats.GeoResolver
+
 // HandleExecute upgrades to WebSocket and streams events for an
 // append scenario via EventStream. The simulator runs in a goroutine
 // and sends events to a bounded channel; a writer goroutine drains
@@ -212,6 +227,12 @@ func HandleExecute(w http.ResponseWriter, r *http.Request) {
 	defer conn.Close()
 	ActiveConnections.Inc()
 	defer ActiveConnections.Dec()
+
+	if Geo != nil && Stats != nil {
+		if country := Geo.Country(r); country != "" {
+			go Stats.RecordCountry(country)
+		}
+	}
 
 	slog.Info("connection opened",
 		"handler", "execute",
