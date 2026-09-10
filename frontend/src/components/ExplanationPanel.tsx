@@ -164,7 +164,7 @@ export default function ExplanationPanel() {
               </div>
               <div>
                 <span className={strategy === "1.5x" ? "text-emerald-400" : "text-[var(--text-2)]"}>
-                  Java 1.5×
+                  1.5×
                 </span>
                 {" "}{oldCap} → {javaCapacity(needed)}{" "}
                 <span className="text-[var(--text-2)]">

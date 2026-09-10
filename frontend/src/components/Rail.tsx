@@ -10,7 +10,7 @@ const MODES: { key: Mode; letter: string; label: string }[] = [
 const STRATEGIES: { key: Strategy; label: string; subtitle: string }[] = [
   { key: "cpython", label: "CPython", subtitle: "~1.125×" },
   { key: "doubling", label: "Doubling", subtitle: "2×" },
-  { key: "1.5x", label: "Java", subtitle: "1.5×" },
+  { key: "1.5x", label: "1.5×", subtitle: "grow by half" },
   { key: "nogrowth", label: "No growth", subtitle: "fixed" },
 ];
 

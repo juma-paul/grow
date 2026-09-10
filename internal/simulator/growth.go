@@ -28,7 +28,7 @@ func (DoublingGrowth) NextCapacity(needed int) int {
 	return capacity
 }
 
-// OneAndAHalfGrowth implements 1.5× growth (used by Java, C++ MSVC, C#).
+// OneAndAHalfGrowth implements 1.5× growth (used by Java ArrayList, C++ MSVC vector, C# List).
 type OneAndAHalfGrowth struct{}
 
 func (OneAndAHalfGrowth) NextCapacity(needed int) int {
