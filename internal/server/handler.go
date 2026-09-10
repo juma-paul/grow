@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -16,7 +17,7 @@ const autoTimeout = 5 * time.Second
 
 // HandleAutoExecute upgrades to WebSocket, reads user Python source,
 // rewrites it so list ops go through VisualList, executes in a sandbox,
-// and streams the collected events back.
+// coalesces if needed, and streams the events back via EventStream.
 func HandleAutoExecute(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -39,16 +40,24 @@ func HandleAutoExecute(w http.ResponseWriter, r *http.Request) {
 		evts, runErr = executor.RunAuto(string(msg), autoTimeout)
 	}
 
-	for _, e := range evts {
-		data, err := events.Marshal(e)
-		if err != nil {
-			log.Printf("marshal error: %v", err)
-			continue
-		}
-		if err := conn.WriteMessage(websocket.TextMessage, data); err != nil {
-			break
-		}
+	evts, coalesced := CoalesceEvents(evts)
+	if coalesced > 0 {
+		log.Printf("coalesced %d events", coalesced)
 	}
+
+	stream := NewEventStream()
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		stream.WriteTo(conn)
+	}()
+
+	for _, e := range evts {
+		stream.Send(e)
+	}
+	stream.Close()
+	wg.Wait()
 
 	closeMsg := "done"
 	if runErr != nil {
@@ -67,7 +76,8 @@ const observeTimeout = 10 * time.Second
 
 // HandleObserve upgrades to WebSocket, reads user Python source,
 // instruments it with _snap() calls, runs it under real CPython,
-// diffs the snapshots into events, and streams them back.
+// diffs the snapshots into events, coalesces if needed, and streams
+// them back via EventStream.
 func HandleObserve(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -86,17 +96,24 @@ func HandleObserve(w http.ResponseWriter, r *http.Request) {
 	snaps, runErr := executor.RunCPython(script, observeTimeout)
 
 	evts := executor.DiffSnapshots(snaps)
+	evts, coalesced := CoalesceEvents(evts)
+	if coalesced > 0 {
+		log.Printf("coalesced %d events", coalesced)
+	}
+
+	stream := NewEventStream()
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		stream.WriteTo(conn)
+	}()
 
 	for _, e := range evts {
-		data, err := events.Marshal(e)
-		if err != nil {
-			log.Printf("marshal error: %v", err)
-			continue
-		}
-		if err := conn.WriteMessage(websocket.TextMessage, data); err != nil {
-			break
-		}
+		stream.Send(e)
 	}
+	stream.Close()
+	wg.Wait()
 
 	closeMsg := "done"
 	if runErr != nil {
@@ -116,7 +133,9 @@ var upgrader = websocket.Upgrader{
 }
 
 // HandleExecute upgrades to WebSocket and streams events for an
-// append scenario. Accepts ?count=N&strategy=NAME query params.
+// append scenario via EventStream. The simulator runs in a goroutine
+// and sends events to a bounded channel; a writer goroutine drains
+// the channel to the WebSocket.
 func HandleExecute(w http.ResponseWriter, r *http.Request) {
 	count := 20
 	if q := r.URL.Query().Get("count"); q != "" {
@@ -142,39 +161,44 @@ func HandleExecute(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-	var writeErr error
-	lst := simulator.NewVisualList(strategy, func(e events.Event) {
-		if writeErr != nil {
-			return
-		}
-		data, err := events.Marshal(e)
-		if err != nil {
-			log.Printf("marshal error: %v", err)
-			return
-		}
-		if err := conn.WriteMessage(websocket.TextMessage, data); err != nil {
-			writeErr = err
-		}
-	})
-
-	defer func() {
-		if r := recover(); r != nil {
-			if _, ok := r.(simulator.OverflowExceeded); !ok {
-				panic(r)
-			}
-		}
-		conn.WriteMessage(
-			websocket.CloseMessage,
-			websocket.FormatCloseMessage(websocket.CloseNormalClosure, "done"),
-		)
-		conn.SetReadDeadline(time.Now().Add(time.Second))
-		conn.ReadMessage()
+	stream := NewEventStream()
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		stream.WriteTo(conn)
 	}()
 
-	for i := 0; i < count; i++ {
-		lst.Append(i)
-		if writeErr != nil {
-			break
+	lst := simulator.NewVisualList(strategy, func(e events.Event) {
+		if stream.Err() != nil {
+			return
 		}
-	}
+		stream.Send(e)
+	})
+
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				if _, ok := r.(simulator.OverflowExceeded); !ok {
+					panic(r)
+				}
+			}
+		}()
+		for i := 0; i < count; i++ {
+			lst.Append(i)
+			if stream.Err() != nil {
+				break
+			}
+		}
+	}()
+
+	stream.Close()
+	wg.Wait()
+
+	conn.WriteMessage(
+		websocket.CloseMessage,
+		websocket.FormatCloseMessage(websocket.CloseNormalClosure, "done"),
+	)
+	conn.SetReadDeadline(time.Now().Add(time.Second))
+	conn.ReadMessage()
 }
