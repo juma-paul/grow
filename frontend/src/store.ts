@@ -149,6 +149,25 @@ function applyEvent(
     pendingResizeCost = 0;
   }
 
+  if (event.type === "append_batch") {
+    const count = event.count as number;
+    const toLen = event.to_len as number;
+    length = toLen;
+    for (let i = 0; i < count; i++) {
+      totalCost += 1;
+      const opNum = costs.length + 1;
+      costs = [
+        ...costs,
+        {
+          op: opNum,
+          cost: 1,
+          isResize: false,
+          amortized: parseFloat((totalCost / opNum).toFixed(2)),
+        },
+      ];
+    }
+  }
+
   return { length, capacity, resize, retiring, pastArrays, costs, pendingResizeCost, totalCost, resizeCount, lastResize };
 }
 

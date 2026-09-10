@@ -143,6 +143,16 @@ type Overflow struct {
 
 func (Overflow) Type() string { return "overflow" }
 
+// AppendBatch summarises a run of consecutive non-resize appends
+// that were coalesced to reduce event volume.
+type AppendBatch struct {
+	Count   int `json:"count"`
+	FromLen int `json:"from_len"`
+	ToLen   int `json:"to_len"`
+}
+
+func (AppendBatch) Type() string { return "append_batch" }
+
 // LimitExceeded fires when an execution hits a sandbox cap.
 type LimitExceeded struct {
 	Reason string `json:"reason"`
