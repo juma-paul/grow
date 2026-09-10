@@ -6,6 +6,7 @@ import AutoPanel from "./components/AutoPanel";
 import BottomDock from "./components/BottomDock";
 import Rail from "./components/Rail";
 import ExplanationPanel from "./components/ExplanationPanel";
+import Onboarding from "./components/Onboarding";
 import { useEventStore } from "./store";
 import { usePlayback } from "./hooks/usePlayback";
 
@@ -156,7 +157,8 @@ function App() {
       </div>
 
       {/* Center stage */}
-      <main className="flex flex-col min-h-0 overflow-hidden bg-[#0f1117]">
+      <main className="relative flex flex-col min-h-0 overflow-hidden bg-[#0f1117]">
+        {mode === "presets" && <Onboarding />}
         {/* Presets mode: buttons at top, then transport, viz, graph */}
         {mode === "presets" && (
           <>
