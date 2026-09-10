@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
@@ -21,6 +22,11 @@ func main() {
 	geoDBPath := os.Getenv("GEOIP_DB")
 	server.Geo = stats.NewGeoResolver(geoDBPath)
 	defer server.Geo.Close()
+
+	pgConn := os.Getenv("DATABASE_URL")
+	flusher := stats.NewFlusher(redisAddr, pgConn, 30*time.Second)
+	flusher.Start()
+	defer flusher.Stop()
 
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok\n"))
