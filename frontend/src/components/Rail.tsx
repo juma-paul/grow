@@ -143,6 +143,11 @@ export default function Rail({
             </button>
           ))}
         </div>
+        {backend === "cpython" && (
+          <div className="mt-2 px-2 py-1.5 rounded bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-500 leading-snug">
+            Runs Python on this machine
+          </div>
+        )}
       </div>
 
       {/* Stats */}

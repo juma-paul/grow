@@ -122,6 +122,37 @@ for i in range(10):
 	}
 }
 
+func TestPreambleContainsSafetyChecks(t *testing.T) {
+	result := InstrumentForObserve("x = []\n")
+
+	if !strings.Contains(result, "sys.version_info") {
+		t.Error("missing version probe")
+	}
+	if !strings.Contains(result, "sys.getsizeof([])") {
+		t.Error("missing layout validation")
+	}
+	if !strings.Contains(result, "resource.setrlimit") {
+		t.Error("missing resource limits")
+	}
+	if !strings.Contains(result, "RLIMIT_CPU") {
+		t.Error("missing CPU limit")
+	}
+	if !strings.Contains(result, "RLIMIT_AS") {
+		t.Error("missing memory limit")
+	}
+}
+
+func TestVersionProbePassesOnCurrentSystem(t *testing.T) {
+	script := InstrumentForObserve("x = []\nx.append(1)\n")
+	snaps, err := RunCPython(script, 5*time.Second)
+	if err != nil {
+		t.Fatalf("version probe failed on this system: %v", err)
+	}
+	if len(snaps) < 2 {
+		t.Fatalf("expected at least 2 snapshots (init + append), got %d", len(snaps))
+	}
+}
+
 func TestInstrumentMultipleLists(t *testing.T) {
 	src := `a = []
 b = []

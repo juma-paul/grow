@@ -7,6 +7,33 @@ import (
 
 const observePreamble = `import ctypes, json, sys
 
+# --- version probe: validate _PyListStruct layout ---
+_vi = sys.version_info
+if _vi.major != 3 or _vi.minor < 8:
+    sys.stderr.write("observe requires CPython 3.8+, got %d.%d\n" % (_vi.major, _vi.minor))
+    sys.exit(1)
+
+_empty_size = sys.getsizeof([])
+_ptr = ctypes.sizeof(ctypes.c_void_p)
+_ssz = ctypes.sizeof(ctypes.c_ssize_t)
+_expected = 3 * _ssz + 2 * _ptr
+if _empty_size < _expected:
+    sys.stderr.write(
+        "unexpected list layout: getsizeof([])=%d, expected>=%d "
+        "(ptr=%d, ssize=%d). Free-threaded or 32-bit build?\n"
+        % (_empty_size, _expected, _ptr, _ssz)
+    )
+    sys.exit(1)
+
+# --- resource limits (Unix only) ---
+try:
+    import resource
+    resource.setrlimit(resource.RLIMIT_CPU, (5, 5))
+    _mem = 256 * 1024 * 1024
+    resource.setrlimit(resource.RLIMIT_AS, (_mem, _mem))
+except (ImportError, ValueError, OSError):
+    pass
+
 class _PyListStruct(ctypes.Structure):
     _fields_ = [
         ("ob_refcnt",  ctypes.c_ssize_t),
