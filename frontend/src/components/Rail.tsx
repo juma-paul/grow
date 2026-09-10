@@ -14,7 +14,7 @@ const STRATEGIES: { key: Strategy; label: string; subtitle: string }[] = [
   { key: "nogrowth", label: "No growth", subtitle: "fixed" },
 ];
 
-export default function Rail() {
+export default function Rail({ onShowHelp }: { onShowHelp?: () => void }) {
   const mode = useEventStore((s) => s.mode);
   const setMode = useEventStore((s) => s.setMode);
   const strategy = useEventStore((s) => s.strategy);
@@ -129,6 +129,19 @@ export default function Rail() {
           </span>
         </div>
       </div>
+
+      {/* Help */}
+      {onShowHelp && (
+        <div className="px-5 pb-4">
+          <button
+            onClick={onShowHelp}
+            className="flex items-center justify-center w-6 h-6 rounded border border-[#262d3d] bg-[#1e2330] text-[11px] font-[var(--font-mono)] text-[#565b6b] hover:text-[#8b90a0] hover:border-[#565b6b] transition-colors"
+            aria-label="Keyboard shortcuts"
+          >
+            ?
+          </button>
+        </div>
+      )}
     </aside>
   );
 }

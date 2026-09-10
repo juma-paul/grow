@@ -7,8 +7,10 @@ import BottomDock from "./components/BottomDock";
 import Rail from "./components/Rail";
 import ExplanationPanel from "./components/ExplanationPanel";
 import Onboarding from "./components/Onboarding";
+import ShortcutsOverlay from "./components/ShortcutsOverlay";
 import { useEventStore } from "./store";
 import { usePlayback } from "./hooks/usePlayback";
+import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 
 const SPEEDS = [0.5, 1, 2, 5];
 
@@ -109,6 +111,7 @@ function App() {
   const setStrategy = useEventStore((s) => s.setStrategy);
   const lastResize = useEventStore((s) => s.lastResize);
   usePlayback();
+  const { showHelp, setShowHelp } = useKeyboardShortcuts();
 
   const hasEvents = totalEvents > 0;
   const showExplanation = !!lastResize;
@@ -122,7 +125,7 @@ function App() {
           : "md:grid-cols-[220px_1fr]"
       }`}
     >
-      <Rail />
+      <Rail onShowHelp={() => setShowHelp(true)} />
 
       {/* Mobile header */}
       <div className="flex md:hidden items-center gap-3 border-b border-[#262d3d] px-4 py-2">
@@ -159,6 +162,7 @@ function App() {
       {/* Center stage */}
       <main className="relative flex flex-col min-h-0 overflow-hidden bg-[#0f1117]">
         {mode === "presets" && <Onboarding />}
+        {showHelp && <ShortcutsOverlay onClose={() => setShowHelp(false)} />}
         {/* Presets mode: buttons at top, then transport, viz, graph */}
         {mode === "presets" && (
           <>
