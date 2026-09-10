@@ -1,0 +1,31 @@
+# 2026/09/09 19:14:13.383167 [TestPropertyShrinkFiresIffConditionMet] [rapid] draw numOps: 2
+# 2026/09/09 19:14:13.383170 [TestPropertyShrinkFiresIffConditionMet] [rapid] draw opKind: 0
+# 2026/09/09 19:14:13.383170 [TestPropertyShrinkFiresIffConditionMet] [rapid] draw index: 0
+# 2026/09/09 19:14:13.383171 [TestPropertyShrinkFiresIffConditionMet] [rapid] draw count: 1
+# 2026/09/09 19:14:13.383171 [TestPropertyShrinkFiresIffConditionMet] [rapid] draw opKind: 1
+# 2026/09/09 19:14:13.383171 [TestPropertyShrinkFiresIffConditionMet] [rapid] draw index: 0
+# 2026/09/09 19:14:13.383172 [TestPropertyShrinkFiresIffConditionMet] [rapid] draw count: 1
+# 2026/09/09 19:14:13.383172 [TestPropertyShrinkFiresIffConditionMet] pop #0: did NOT shrink but newLen=0 < oldAlloc/2=2
+# 
+v0.4.8#17352031689565932364
+0x0
+0x0
+0x1
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x1
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
