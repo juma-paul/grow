@@ -6,8 +6,10 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/juma-paul/grow/internal/stats"
 )
 
 func readAllEvents(t *testing.T, ws *websocket.Conn) []map[string]any {
@@ -142,6 +144,50 @@ func TestObserveEndpoint(t *testing.T) {
 	}
 	if resizeBegins != 2 {
 		t.Errorf("observe: resize_begin count = %d, want 2", resizeBegins)
+	}
+}
+
+func TestStatsEndpointNilCache(t *testing.T) {
+	StatsCache = nil
+	srv := httptest.NewServer(http.HandlerFunc(HandleStats))
+	defer srv.Close()
+
+	resp, err := http.Get(srv.URL + "/stats")
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusServiceUnavailable {
+		t.Errorf("status = %d, want 503", resp.StatusCode)
+	}
+}
+
+func TestStatsEndpointReturnsJSON(t *testing.T) {
+	StatsCache = stats.NewSnapshotCache("", 10*time.Second)
+	StatsCache.Start()
+	defer StatsCache.Stop()
+
+	srv := httptest.NewServer(http.HandlerFunc(HandleStats))
+	defer srv.Close()
+
+	resp, err := http.Get(srv.URL + "/stats")
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want 200", resp.StatusCode)
+	}
+	if ct := resp.Header.Get("Content-Type"); ct != "application/json" {
+		t.Errorf("content-type = %q, want application/json", ct)
+	}
+
+	var snap map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&snap); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if _, ok := snap["total_runs"]; !ok {
+		t.Error("response missing total_runs field")
 	}
 }
 

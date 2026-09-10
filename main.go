@@ -28,11 +28,16 @@ func main() {
 	flusher.Start()
 	defer flusher.Stop()
 
+	server.StatsCache = stats.NewSnapshotCache(redisAddr, 10*time.Second)
+	server.StatsCache.Start()
+	defer server.StatsCache.Stop()
+
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok\n"))
 	})
 
 	http.Handle("/metrics", promhttp.Handler())
+	http.HandleFunc("/stats", server.HandleStats)
 	http.HandleFunc("/execute", server.HandleExecute)
 	http.HandleFunc("/auto", server.HandleAutoExecute)
 	http.HandleFunc("/observe", server.HandleObserve)

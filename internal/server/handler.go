@@ -197,6 +197,25 @@ var Stats *stats.Recorder
 // Geo resolves request IPs to country codes. Set by main before serving.
 var Geo *stats.GeoResolver
 
+// StatsCache is the cached stats snapshot. Set by main before serving.
+var StatsCache *stats.SnapshotCache
+
+// HandleStats serves the cached usage stats as JSON.
+func HandleStats(w http.ResponseWriter, r *http.Request) {
+	if StatsCache == nil {
+		http.Error(w, "stats not configured", http.StatusServiceUnavailable)
+		return
+	}
+	data, err := StatsCache.JSON()
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "public, max-age=10")
+	w.Write(data)
+}
+
 // HandleExecute upgrades to WebSocket and streams events for an
 // append scenario via EventStream. The simulator runs in a goroutine
 // and sends events to a bounded channel; a writer goroutine drains
