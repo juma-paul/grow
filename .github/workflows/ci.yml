@@ -13,6 +13,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Build frontend
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile && pnpm build
+
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
@@ -24,7 +36,7 @@ jobs:
         run: go test -race -count=1 ./...
 
   frontend:
-    name: Frontend build
+    name: Frontend typecheck
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
