@@ -21,6 +21,9 @@ dev-bare: frontend ## Build frontend, run server without Redis/Postgres
 
 infra: ## Start Redis + Postgres in Docker
 	@docker compose up -d --wait
+	@for f in migrations/*.sql; do \
+		PGPASSWORD=grow psql -h localhost -U grow -d grow -f "$$f" 2>/dev/null || true; \
+	done
 	@echo "  Redis:    localhost:6379"
 	@echo "  Postgres: localhost:5432 (grow/grow)"
 
