@@ -1,3 +1,5 @@
+//go:build ignore
+
 // loadtest.go — concurrent WebSocket load-test harness for grow.
 //
 // Usage:
