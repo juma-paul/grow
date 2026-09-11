@@ -29,8 +29,14 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Format check
+        run: test -z "$(gofmt -l .)"
+
       - name: Vet
         run: go vet ./...
+
+      - name: Build
+        run: go build ./...
 
       - name: Test
         run: go test -race -count=1 ./...
