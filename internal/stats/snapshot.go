@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -21,18 +22,20 @@ type Snapshot struct {
 // so the /stats endpoint never queries the database on the hot path.
 type SnapshotCache struct {
 	rdb      *redis.Client
+	pgConn   string
 	mu       sync.RWMutex
 	snapshot Snapshot
 	stop     chan struct{}
 	done     chan struct{}
 }
 
-// NewSnapshotCache creates a cache that refreshes from Redis every interval.
-// If redisAddr is empty, returns a cache with zero values.
-func NewSnapshotCache(redisAddr string, interval time.Duration) *SnapshotCache {
+// NewSnapshotCache creates a cache that refreshes from Redis + Postgres
+// every interval. If redisAddr is empty, returns a cache with zero values.
+func NewSnapshotCache(redisAddr, pgConnStr string, interval time.Duration) *SnapshotCache {
 	sc := &SnapshotCache{
-		stop: make(chan struct{}),
-		done: make(chan struct{}),
+		pgConn: pgConnStr,
+		stop:   make(chan struct{}),
+		done:   make(chan struct{}),
 	}
 	if redisAddr != "" {
 		sc.rdb = redis.NewClient(&redis.Options{Addr: redisAddr})
@@ -85,24 +88,34 @@ func (sc *SnapshotCache) loop() {
 }
 
 func (sc *SnapshotCache) refresh() {
-	if sc.rdb == nil {
-		return
-	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	totalRuns, _ := sc.rdb.Get(ctx, "grow:runs:total").Int64()
-	totalElements, _ := sc.rdb.Get(ctx, "grow:elements:total").Int64()
+	// Durable totals from Postgres (flusher moves Redis→PG)
+	var pgRuns, pgElements int64
+	if sc.pgConn != "" {
+		if conn, err := pgx.Connect(ctx, sc.pgConn); err == nil {
+			conn.QueryRow(ctx,
+				"SELECT total_runs, total_elements FROM usage_stats WHERE id = 1",
+			).Scan(&pgRuns, &pgElements)
+			conn.Close(ctx)
+		}
+	}
 
-	today := time.Now().UTC().Format("2006-01-02")
-	runsToday, _ := sc.rdb.Get(ctx, "grow:runs:daily:"+today).Int64()
+	// Not-yet-flushed delta still in Redis
+	var redisRuns, redisElements, runsToday int64
+	if sc.rdb != nil {
+		redisRuns, _ = sc.rdb.Get(ctx, "grow:runs:total").Int64()
+		redisElements, _ = sc.rdb.Get(ctx, "grow:elements:total").Int64()
+		today := time.Now().UTC().Format("2006-01-02")
+		runsToday, _ = sc.rdb.Get(ctx, "grow:runs:daily:"+today).Int64()
+	}
 
 	sc.mu.Lock()
 	sc.snapshot = Snapshot{
-		TotalRuns:         totalRuns,
+		TotalRuns:         pgRuns + redisRuns,
 		RunsToday:         runsToday,
-		ElementsAllocated: totalElements,
+		ElementsAllocated: pgElements + redisElements,
 		CachedAt:          time.Now().UTC().Format(time.RFC3339),
 	}
 	sc.mu.Unlock()

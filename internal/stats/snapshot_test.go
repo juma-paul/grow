@@ -7,7 +7,7 @@ import (
 )
 
 func TestSnapshotCacheNoRedis(t *testing.T) {
-	sc := NewSnapshotCache("", 10*time.Second)
+	sc := NewSnapshotCache("", "", 10*time.Second)
 	sc.Start()
 	defer sc.Stop()
 
@@ -18,7 +18,7 @@ func TestSnapshotCacheNoRedis(t *testing.T) {
 }
 
 func TestSnapshotJSON(t *testing.T) {
-	sc := NewSnapshotCache("", 10*time.Second)
+	sc := NewSnapshotCache("", "", 10*time.Second)
 	sc.Start()
 	defer sc.Stop()
 

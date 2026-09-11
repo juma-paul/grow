@@ -28,7 +28,7 @@ func main() {
 	flusher.Start()
 	defer flusher.Stop()
 
-	server.StatsCache = stats.NewSnapshotCache(redisAddr, 10*time.Second)
+	server.StatsCache = stats.NewSnapshotCache(redisAddr, pgConn, 10*time.Second)
 	server.StatsCache.Start()
 	defer server.StatsCache.Stop()
 

@@ -163,7 +163,7 @@ func TestStatsEndpointNilCache(t *testing.T) {
 }
 
 func TestStatsEndpointReturnsJSON(t *testing.T) {
-	StatsCache = stats.NewSnapshotCache("", 10*time.Second)
+	StatsCache = stats.NewSnapshotCache("", "", 10*time.Second)
 	StatsCache.Start()
 	defer StatsCache.Stop()
 
