@@ -17,3 +17,4 @@ test-results/
 # Personal planning & retrospective docs
 PLAN.md
 Retro.md
+__pycache__/
