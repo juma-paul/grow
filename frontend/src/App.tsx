@@ -8,6 +8,7 @@ import Rail from "./components/Rail";
 import ExplanationPanel from "./components/ExplanationPanel";
 import Onboarding from "./components/Onboarding";
 import ShortcutsOverlay from "./components/ShortcutsOverlay";
+import LandingPage from "./components/LandingPage";
 import { useEventStore } from "./store";
 import { usePlayback } from "./hooks/usePlayback";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
@@ -99,7 +100,7 @@ function TransportBar() {
   );
 }
 
-function App() {
+function Visualizer() {
   const length = useEventStore((s) => s.length);
   const capacity = useEventStore((s) => s.capacity);
   const resize = useEventStore((s) => s.resize);
@@ -212,6 +213,12 @@ function App() {
       )}
     </div>
   );
+}
+
+function App() {
+  const page = useEventStore((s) => s.page);
+  if (page === "home") return <LandingPage />;
+  return <Visualizer />;
 }
 
 export default App;

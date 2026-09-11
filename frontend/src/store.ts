@@ -5,6 +5,7 @@ interface Event {
   [key: string]: unknown;
 }
 
+export type Page = "home" | "app";
 export type Mode = "presets" | "wrapper" | "auto";
 export type Strategy = "cpython" | "doubling" | "1.5x" | "nogrowth";
 export type Backend = "simulator" | "cpython";
@@ -56,9 +57,11 @@ interface EventStore {
   isPlaying: boolean;
   speed: number;
   count: number;
+  page: Page;
   mode: Mode;
   strategy: Strategy;
   backend: Backend;
+  setPage: (page: Page) => void;
   addEvents: (events: Event[]) => void;
   stepForward: () => void;
   stepBack: () => void;
@@ -209,6 +212,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
   isPlaying: false,
   speed: 1,
   count: 20,
+  page: "home",
   mode: "presets",
   strategy: "cpython",
   backend: "simulator",
@@ -260,6 +264,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
   pause: () => set({ isPlaying: false }),
   setSpeed: (speed) => set({ speed }),
   setCount: (count) => set({ count }),
+  setPage: (page) => set({ page }),
   setMode: (mode) => set({ mode }),
   setStrategy: (strategy) => set({ strategy }),
   setBackend: (backend) => set({ backend }),

@@ -24,6 +24,7 @@ export default function Rail({
   theme?: "dark" | "light";
   onToggleTheme?: () => void;
 }) {
+  const setPage = useEventStore((s) => s.setPage);
   const mode = useEventStore((s) => s.mode);
   const setMode = useEventStore((s) => s.setMode);
   const strategy = useEventStore((s) => s.strategy);
@@ -48,9 +49,12 @@ export default function Rail({
             grow
           </span>
         </div>
-        <span className="text-[11px] text-[var(--text-2)] cursor-pointer hover:text-[var(--text-1)]">
+        <button
+          onClick={() => setPage("home")}
+          className="text-[11px] text-[var(--text-2)] cursor-pointer hover:text-[var(--text-1)] transition-colors"
+        >
           Home
-        </span>
+        </button>
       </div>
 
       {/* Mode */}
