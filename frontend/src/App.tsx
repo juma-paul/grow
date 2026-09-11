@@ -112,6 +112,8 @@ function Visualizer() {
   const setMode = useEventStore((s) => s.setMode);
   const setStrategy = useEventStore((s) => s.setStrategy);
   const lastResize = useEventStore((s) => s.lastResize);
+  const error = useEventStore((s) => s.error);
+  const setError = useEventStore((s) => s.setError);
   usePlayback();
   const { showHelp, setShowHelp } = useKeyboardShortcuts();
   const { theme, toggle: toggleTheme } = useTheme();
@@ -164,6 +166,17 @@ function Visualizer() {
 
       {/* Center stage */}
       <main className="relative flex flex-col min-h-0 overflow-hidden bg-[var(--surface-0)]">
+        {error && (
+          <div className="flex items-center gap-3 bg-red-500/10 border-b border-red-500/20 px-4 py-2.5 text-sm text-red-400 shrink-0">
+            <span className="font-medium">{error}</span>
+            <button
+              onClick={() => setError(null)}
+              className="ml-auto text-red-400/60 hover:text-red-400 text-xs"
+            >
+              dismiss
+            </button>
+          </div>
+        )}
         {mode === "presets" && <Onboarding />}
         {showHelp && <ShortcutsOverlay onClose={() => setShowHelp(false)} />}
         {/* Presets mode: buttons at top, then transport, viz, graph */}

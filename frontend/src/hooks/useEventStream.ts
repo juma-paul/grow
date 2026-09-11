@@ -5,6 +5,7 @@ export function useEventStream() {
   const addEvents = useEventStore((state) => state.addEvents);
   const play = useEventStore((state) => state.play);
   const reset = useEventStore((state) => state.reset);
+  const setError = useEventStore((state) => state.setError);
   const count = useEventStore((state) => state.count);
   const strategy = useEventStore((state) => state.strategy);
   const wsRef = useRef<WebSocket | null>(null);
@@ -25,10 +26,16 @@ export function useEventStream() {
         buffer.push(JSON.parse(msg.data));
       };
 
-      ws.onclose = () => {
+      ws.onclose = (e) => {
         if (wsRef.current === ws) {
+          const reason = e.reason;
+          if (reason && reason !== "done") {
+            setError(reason);
+          }
           addEvents(buffer);
-          play();
+          if (buffer.length > 0 && (!reason || reason === "done")) {
+            play();
+          }
         }
       };
 
@@ -36,7 +43,7 @@ export function useEventStream() {
         console.error("WebSocket error:", err);
       };
     },
-    [addEvents, play, reset, count, strategy],
+    [addEvents, play, reset, setError, count, strategy],
   );
 
   const backend = useEventStore((state) => state.backend);
@@ -66,10 +73,16 @@ export function useEventStream() {
         buffer.push(JSON.parse(msg.data));
       };
 
-      ws.onclose = () => {
+      ws.onclose = (e) => {
         if (wsRef.current === ws) {
+          const reason = e.reason;
+          if (reason && reason !== "done") {
+            setError(reason);
+          }
           addEvents(buffer);
-          play();
+          if (buffer.length > 0 && (!reason || reason === "done")) {
+            play();
+          }
         }
       };
 
@@ -77,7 +90,7 @@ export function useEventStream() {
         console.error("WebSocket error:", err);
       };
     },
-    [addEvents, play, reset, backend],
+    [addEvents, play, reset, setError, backend],
   );
 
   useEffect(() => {

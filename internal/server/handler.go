@@ -269,18 +269,20 @@ func HandleExecute(w http.ResponseWriter, r *http.Request) {
 		stream.WriteTo(conn)
 	}()
 
-	lst := simulator.NewVisualList(strategy, func(e events.Event) {
+	lst := simulator.NewVisualListWithLimits(strategy, func(e events.Event) {
 		if stream.Err() != nil {
 			return
 		}
 		stream.Send(e)
-	})
+	}, simulator.Limits{MaxOps: 100_000, MaxAlloc: 10_000_000})
 
 	func() {
 		defer func() {
 			if r := recover(); r != nil {
 				if _, ok := r.(simulator.OverflowExceeded); !ok {
-					panic(r)
+					if _, ok2 := r.(simulator.LimitExceeded); !ok2 {
+						panic(r)
+					}
 				}
 			}
 		}()

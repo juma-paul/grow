@@ -42,7 +42,10 @@ func NewPyVisualList() *PyVisualList {
 func NewVisualListFactory(emit func(events.Event)) *py.Method {
 	return py.MustNewMethod("VisualList", func(self py.Object, args py.Tuple) (py.Object, error) {
 		pvl := &PyVisualList{}
-		pvl.inner = simulator.NewVisualList(simulator.CPythonGrowth{}, emit)
+		pvl.inner = simulator.NewVisualListWithLimits(simulator.CPythonGrowth{}, emit, simulator.Limits{
+			MaxOps:   100_000,
+			MaxAlloc: 10_000_000,
+		})
 		if len(args) == 0 {
 			return pvl, nil
 		}

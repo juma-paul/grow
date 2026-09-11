@@ -61,7 +61,9 @@ interface EventStore {
   mode: Mode;
   strategy: Strategy;
   backend: Backend;
+  error: string | null;
   setPage: (page: Page) => void;
+  setError: (error: string | null) => void;
   addEvents: (events: Event[]) => void;
   stepForward: () => void;
   stepBack: () => void;
@@ -214,6 +216,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
   count: 20,
   page: "home",
   mode: "presets",
+  error: null,
   strategy: "cpython",
   backend: "simulator",
 
@@ -265,6 +268,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
   setSpeed: (speed) => set({ speed }),
   setCount: (count) => set({ count }),
   setPage: (page) => set({ page }),
+  setError: (error) => set({ error }),
   setMode: (mode) => set({ mode }),
   setStrategy: (strategy) => set({ strategy }),
   setBackend: (backend) => set({ backend }),
@@ -275,5 +279,6 @@ export const useEventStore = create<EventStore>((set, get) => ({
       currentIndex: -1,
       ...freshState(),
       isPlaying: false,
+      error: null,
     }),
 }));
