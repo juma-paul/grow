@@ -6,7 +6,22 @@ interface Stats {
   total_runs: number;
   runs_today: number;
   elements_allocated: number;
+  countries?: Record<string, number>;
 }
+
+const COUNTRY_NAMES: Record<string, string> = {
+  US: "United States", GB: "United Kingdom", DE: "Germany", FR: "France",
+  CA: "Canada", AU: "Australia", IN: "India", BR: "Brazil", JP: "Japan",
+  KE: "Kenya", NG: "Nigeria", ZA: "South Africa", GH: "Ghana", EG: "Egypt",
+  CN: "China", KR: "South Korea", NL: "Netherlands", SE: "Sweden",
+  ES: "Spain", IT: "Italy", PL: "Poland", RU: "Russia", MX: "Mexico",
+  AR: "Argentina", CO: "Colombia", CL: "Chile", SG: "Singapore",
+  ID: "Indonesia", PH: "Philippines", TH: "Thailand", VN: "Vietnam",
+  TR: "Turkey", UA: "Ukraine", RO: "Romania", CZ: "Czechia",
+  PT: "Portugal", IE: "Ireland", IL: "Israel", NZ: "New Zealand",
+  MY: "Malaysia", PK: "Pakistan", BD: "Bangladesh", ET: "Ethiopia",
+  TZ: "Tanzania", UG: "Uganda", RW: "Rwanda", TW: "Taiwan",
+};
 
 function fmt(n: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
@@ -120,6 +135,33 @@ export default function LandingPage() {
               </span>
               <span className="text-xs text-[var(--text-2)]">elements allocated</span>
             </div>
+          </div>
+        </section>
+      )}
+
+      {/* Countries */}
+      {stats?.countries && Object.keys(stats.countries).length > 0 && (
+        <section className="px-6 pb-16 max-w-5xl mx-auto">
+          <h2 className="text-lg font-semibold text-center mb-5">
+            Used in {Object.keys(stats.countries).length} {Object.keys(stats.countries).length === 1 ? "country" : "countries"}
+          </h2>
+          <div className="flex flex-wrap justify-center gap-2 max-w-2xl mx-auto">
+            {Object.entries(stats.countries)
+              .sort(([, a], [, b]) => b - a)
+              .map(([code, count]) => (
+                <span
+                  key={code}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-[var(--surface-1)] border border-[var(--border)] px-3 py-1.5 text-xs"
+                  title={`${count} ${count === 1 ? "run" : "runs"}`}
+                >
+                  <span className="text-[var(--text-0)] font-medium">
+                    {COUNTRY_NAMES[code] || code}
+                  </span>
+                  <span className="text-[var(--text-2)] font-[var(--font-mono)] tabular-nums">
+                    {fmt(count)}
+                  </span>
+                </span>
+              ))}
           </div>
         </section>
       )}

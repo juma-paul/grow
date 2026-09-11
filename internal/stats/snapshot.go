@@ -3,6 +3,7 @@ package stats
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"sync"
 	"time"
 
@@ -12,10 +13,11 @@ import (
 
 // Snapshot is the cached aggregate served by GET /stats.
 type Snapshot struct {
-	TotalRuns         int64  `json:"total_runs"`
-	RunsToday         int64  `json:"runs_today"`
-	ElementsAllocated int64  `json:"elements_allocated"`
-	CachedAt          string `json:"cached_at"`
+	TotalRuns         int64            `json:"total_runs"`
+	RunsToday         int64            `json:"runs_today"`
+	ElementsAllocated int64            `json:"elements_allocated"`
+	Countries         map[string]int64 `json:"countries,omitempty"`
+	CachedAt          string           `json:"cached_at"`
 }
 
 // SnapshotCache holds a periodically refreshed stats snapshot
@@ -104,11 +106,24 @@ func (sc *SnapshotCache) refresh() {
 
 	// Not-yet-flushed delta still in Redis
 	var redisRuns, redisElements, runsToday int64
+	var countries map[string]int64
 	if sc.rdb != nil {
 		redisRuns, _ = sc.rdb.Get(ctx, "grow:runs:total").Int64()
 		redisElements, _ = sc.rdb.Get(ctx, "grow:elements:total").Int64()
 		today := time.Now().UTC().Format("2006-01-02")
 		runsToday, _ = sc.rdb.Get(ctx, "grow:runs:daily:"+today).Int64()
+
+		keys, _ := sc.rdb.Keys(ctx, "grow:countries:*").Result()
+		if len(keys) > 0 {
+			countries = make(map[string]int64, len(keys))
+			for _, k := range keys {
+				code := strings.TrimPrefix(k, "grow:countries:")
+				val, _ := sc.rdb.Get(ctx, k).Int64()
+				if val > 0 {
+					countries[code] = val
+				}
+			}
+		}
 	}
 
 	sc.mu.Lock()
@@ -116,6 +131,7 @@ func (sc *SnapshotCache) refresh() {
 		TotalRuns:         pgRuns + redisRuns,
 		RunsToday:         runsToday,
 		ElementsAllocated: pgElements + redisElements,
+		Countries:         countries,
 		CachedAt:          time.Now().UTC().Format(time.RFC3339),
 	}
 	sc.mu.Unlock()
