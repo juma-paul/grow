@@ -186,6 +186,111 @@ func TestExtendLengthHint(t *testing.T) {
 	}
 }
 
+func TestNoGrowthOverflowEvent(t *testing.T) {
+	var log []events.Event
+	lst := NewVisualList(NoGrowth{Cap: 4}, func(e events.Event) {
+		log = append(log, e)
+	})
+
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("expected OverflowExceeded panic")
+		}
+		if _, ok := r.(OverflowExceeded); !ok {
+			t.Fatalf("expected OverflowExceeded, got %T", r)
+		}
+
+		var overflows []events.Overflow
+		for _, e := range log {
+			if o, ok := e.(events.Overflow); ok {
+				overflows = append(overflows, o)
+			}
+		}
+		if len(overflows) != 1 {
+			t.Fatalf("overflow count = %d, want 1", len(overflows))
+		}
+		if overflows[0].Capacity != 4 {
+			t.Errorf("overflow capacity = %d, want 4", overflows[0].Capacity)
+		}
+		if overflows[0].Needed != 5 {
+			t.Errorf("overflow needed = %d, want 5", overflows[0].Needed)
+		}
+	}()
+
+	for i := 0; i < 10; i++ {
+		lst.Append(i)
+	}
+}
+
+func TestSourceRefOnAllEvents(t *testing.T) {
+	var log []events.Event
+	lst := NewVisualList(CPythonGrowth{}, func(e events.Event) {
+		log = append(log, e)
+	})
+
+	for i := 0; i < 5; i++ {
+		lst.Append(i)
+	}
+	lst.Insert(0, 99)
+	lst.Pop()
+	lst.Extend([]any{1, 2, 3})
+
+	refs := map[string]string{}
+	for _, e := range log {
+		switch ev := e.(type) {
+		case events.AppendBegin:
+			refs["append_begin"] = ev.SourceRef
+		case events.AppendEnd:
+			refs["append_end"] = ev.SourceRef
+		case events.ResizeBegin:
+			refs["resize_begin"] = ev.SourceRef
+		case events.ResizeEnd:
+			refs["resize_end"] = ev.SourceRef
+		case events.CopyElement:
+			refs["copy_element"] = ev.SourceRef
+		case events.InsertBegin:
+			refs["insert_begin"] = ev.SourceRef
+		case events.InsertEnd:
+			refs["insert_end"] = ev.SourceRef
+		case events.ShiftRight:
+			refs["shift_right"] = ev.SourceRef
+		case events.PopBegin:
+			refs["pop_begin"] = ev.SourceRef
+		case events.PopEnd:
+			refs["pop_end"] = ev.SourceRef
+		case events.ExtendBegin:
+			refs["extend_begin"] = ev.SourceRef
+		case events.ExtendEnd:
+			refs["extend_end"] = ev.SourceRef
+		}
+	}
+
+	want := map[string]string{
+		"append_begin": "list_append:PyList_Append",
+		"append_end":   "list_append:PyList_Append",
+		"resize_begin": "list_resize:growth-formula",
+		"resize_end":   "list_resize:growth-formula",
+		"copy_element": "list_resize:memcpy",
+		"insert_begin": "list_insert:ins1",
+		"insert_end":   "list_insert:ins1",
+		"shift_right":  "list_insert:ins1",
+		"pop_begin":    "list_pop:PyList_Pop",
+		"pop_end":      "list_pop:PyList_Pop",
+		"extend_begin": "list_extend:PyList_Extend",
+		"extend_end":   "list_extend:PyList_Extend",
+	}
+
+	for evType, wantRef := range want {
+		got, ok := refs[evType]
+		if !ok {
+			t.Errorf("no %s event found", evType)
+		} else if got != wantRef {
+			t.Errorf("%s.SourceRef = %q, want %q", evType, got, wantRef)
+		}
+	}
+}
+
 func TestReferenceSnapshot(t *testing.T) {
 	data, err := os.ReadFile("../../testdata/cpython_reference.json")
 	if err != nil {
