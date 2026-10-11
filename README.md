@@ -1,6 +1,7 @@
 # grow
 
 A browser-based visualizer for Python's list amortization strategy. Watch how CPython's backing array resizes, copies elements, and maintains O(1) amortized cost — step by step.
+<img width="1641" height="939" alt="Screenshot 2026-10-11 at 11 07 47 AM" src="https://github.com/user-attachments/assets/49bfb7c3-7193-4b82-b999-0a9e61e5cb49" />
 
 ## What it shows
 
