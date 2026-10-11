@@ -1,9 +1,10 @@
 package server
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -15,44 +16,140 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
-// HandleExecute upgrades to WebSocket and streams events for an
-// append scenario. Accepts ?count=N query param (default 20).
+// HandleExecute upgrades to a WebSocket and streams the events produced by
+// running a scenario against the simulator. The scenario is selected by
+// query params:
+//
+//	op=append|insert|extend  operation to run (default append)
+//	count=N                  number of operations / items
+//	pos=start|middle|end     insert position (insert only)
+//	seed=N                   pre-fill the list with N elements first
+//	strategy=cpython|doubling|1.5x|nogrowth
+//
+// The simulator runs on the request goroutine and emits events into a
+// bounded channel; a writer goroutine drains the channel to the socket.
 func HandleExecute(w http.ResponseWriter, r *http.Request) {
-	count := 20
-	if q := r.URL.Query().Get("count"); q != "" {
-		if n, err := strconv.Atoi(q); err == nil && n > 0 && n <= 1000 {
-			count = n
-		}
+	q := r.URL.Query()
+
+	strategyName := q.Get("strategy")
+	if strategyName == "" {
+		strategyName = "cpython"
+	}
+	strategy, err := simulator.StrategyByName(strategyName)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Printf("websocket upgrade failed: %v", err)
+	op := q.Get("op")
+	if op == "" {
+		op = "append"
+	}
+	count := intParam(q.Get("count"), 20, 1, 1000)
+	seed := intParam(q.Get("seed"), 0, 0, 1000)
+	pos := q.Get("pos")
+
+	conn, upgradeErr := upgrader.Upgrade(w, r, nil)
+	if upgradeErr != nil {
+		slog.Error("websocket upgrade failed", "error", upgradeErr)
 		return
 	}
 	defer conn.Close()
 
-	lst := simulator.NewVisualList(simulator.CPythonGrowth{}, func(e events.Event) {
-		data, err := events.Marshal(e)
-		if err != nil {
-			log.Printf("marshal error: %v", err)
-		}
-		if err := conn.WriteMessage(websocket.TextMessage, data); err != nil {
-			log.Printf("write error: %v", err)
-		}
-	})
+	slog.Info("connection opened",
+		"op", op, "count", count, "seed", seed, "strategy", strategyName)
 
-	for i := 0; i < count; i++ {
-		lst.Append(i)
-	}
+	stream := NewEventStream()
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		stream.WriteTo(conn)
+	}()
 
-	// Signal clean shutdown to the client
+	lst := simulator.NewVisualListWithLimits(strategy, func(e events.Event) {
+		if stream.Err() != nil {
+			return
+		}
+		stream.Send(e)
+	}, simulator.Limits{MaxOps: 100_000, MaxAlloc: 10_000_000})
+
+	runScenario(lst, op, count, seed, pos, stream)
+
+	stream.Close()
+	wg.Wait()
+
 	conn.WriteMessage(
 		websocket.CloseMessage,
 		websocket.FormatCloseMessage(websocket.CloseNormalClosure, "done"),
 	)
-
-	// Complete the close handshake by reading the client's close frame.
 	conn.SetReadDeadline(time.Now().Add(time.Second))
 	conn.ReadMessage()
+}
+
+// runScenario drives the simulator for the chosen operation. A NoGrowth
+// overflow or a sandbox limit aborts the run via panic; both are expected
+// terminal conditions, so they are recovered here (the triggering event is
+// already emitted before the panic).
+func runScenario(lst *simulator.VisualList, op string, count, seed int, pos string, stream *EventStream) {
+	defer func() {
+		if rec := recover(); rec != nil {
+			if _, ok := rec.(simulator.OverflowExceeded); ok {
+				return
+			}
+			if _, ok := rec.(simulator.LimitExceeded); ok {
+				return
+			}
+			panic(rec)
+		}
+	}()
+
+	if seed > 0 {
+		lst.Seed(seed)
+	}
+
+	switch op {
+	case "insert":
+		for i := 0; i < count; i++ {
+			var idx int
+			switch pos {
+			case "start":
+				idx = 0
+			case "middle":
+				idx = lst.Len() / 2
+			default:
+				idx = lst.Len()
+			}
+			lst.Insert(idx, 90+i)
+			if stream.Err() != nil {
+				return
+			}
+		}
+	case "extend":
+		items := make([]any, count)
+		for i := range items {
+			items[i] = seed + i
+		}
+		lst.Extend(items)
+	default: // append
+		for i := 0; i < count; i++ {
+			lst.Append(i)
+			if stream.Err() != nil {
+				return
+			}
+		}
+	}
+}
+
+// intParam parses a query value, returning def when empty, malformed, or
+// outside [min, max].
+func intParam(s string, def, min, max int) int {
+	if s == "" {
+		return def
+	}
+	n, err := strconv.Atoi(s)
+	if err != nil || n < min || n > max {
+		return def
+	}
+	return n
 }
