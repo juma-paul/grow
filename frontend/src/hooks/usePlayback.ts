@@ -57,6 +57,13 @@ export function usePlayback() {
       case "shrink_end":
         delay = 600 / speed;
         break;
+      case "shift_right":
+      case "shift_left":
+        delay = 250 / speed;
+        break;
+      case "pop_begin":
+        delay = 400 / speed;
+        break;
       default:
         delay = 400 / speed;
     }

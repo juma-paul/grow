@@ -8,5 +8,14 @@ export default defineConfig({
   build: {
     outDir: "../internal/server/dist",
     emptyOutDir: true,
+    chunkSizeWarningLimit: 800,
+  },
+  server: {
+    proxy: {
+      "/execute": {
+        target: "http://localhost:8080",
+        ws: true,
+      },
+    },
   },
 });
